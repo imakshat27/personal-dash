@@ -1,0 +1,3 @@
+# Production: Cloudflare Access team domain and application audience.
+ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+ACCESS_AUD=your-access-application-audience
