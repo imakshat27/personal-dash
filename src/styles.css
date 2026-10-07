@@ -2999,3 +2999,54 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+/* Keep navigation reachable in short and landscape viewports. */
+.sidebar {
+  overflow-y: auto;
+}
+/* Readable detail text while retaining a calm, compact dashboard. */
+.recent-file strong,
+.activity-item strong,
+.site-name strong {
+  font-size: 12px;
+}
+.recent-file small,
+.activity-item small,
+.site-name small {
+  font-size: 10px;
+}
+.metric-card > p,
+.event-title > small,
+.event-time > small,
+.panel-foot,
+.agenda-bottom {
+  font-size: 10px;
+}
+.event-title > strong {
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .icon-button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .site-name strong {
+    font-size: 11px;
+  }
+  .site-name small {
+    font-size: 9px;
+  }
+  .table-caption,
+  .panel-foot {
+    font-size: 9px;
+  }
+  .file-details strong {
+    font-size: 11px;
+  }
+  .file-browser-row {
+    grid-template-columns: minmax(100px, 1fr) 70px 40px;
+  }
+  .modal-heading > .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

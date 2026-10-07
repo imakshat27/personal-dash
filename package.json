@@ -11,8 +11,10 @@
     "lint": "eslint .",
     "test": "vitest run",
     "dev:worker": "wrangler dev --env local",
-    "deploy": "npm run build && wrangler deploy",
-    "db:local": "wrangler d1 migrations apply orbit-db --local --env local"
+    "deploy": "npm run build && wrangler deploy --env=\"\"",
+    "db:local": "wrangler d1 migrations apply orbit-db --local --env local",
+    "test:e2e": "playwright test",
+    "format": "prettier --write src shared worker tests docs *.ts *.json *.js *.html README.md"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

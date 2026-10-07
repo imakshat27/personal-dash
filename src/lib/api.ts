@@ -70,7 +70,7 @@ export const api = {
         id ? `/notes/${id}` : "/notes",
         body(note, id ? "PUT" : "POST"),
       );
-    const notes = await this.notes();
+    const notes = await api.notes();
     const value = {
       ...note,
       id: id || crypto.randomUUID(),
@@ -83,7 +83,7 @@ export const api = {
     if (!isDemo) return request(`/notes/${id}`, { method: "DELETE" });
     save(
       "notes",
-      (await this.notes()).filter((n) => n.id !== id),
+      (await api.notes()).filter((n) => n.id !== id),
     );
   },
   async upload(file: File, path: string) {
@@ -110,14 +110,14 @@ export const api = {
       size: file.size,
       modifiedAt: new Date().toISOString(),
     };
-    save("files", [item, ...(await this.files())]);
+    save("files", [item, ...(await api.files())]);
     return item;
   },
   async deleteFile(id: string) {
     if (!isDemo) return request(`/storage/files/${id}`, { method: "DELETE" });
     save(
       "files",
-      (await this.files()).filter((f) => f.id !== id),
+      (await api.files()).filter((f) => f.id !== id),
     );
     await blobAction("readwrite", (store) => store.delete(id));
   },
@@ -125,7 +125,7 @@ export const api = {
     if (!isDemo) return request(`/storage/files/${id}`, body(patch, "PATCH"));
     save(
       "files",
-      (await this.files()).map((f) =>
+      (await api.files()).map((f) =>
         f.id === id
           ? { ...f, ...patch, modifiedAt: new Date().toISOString() }
           : f,

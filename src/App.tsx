@@ -74,6 +74,9 @@ export default function App() {
     localStorage.getItem("orbit.theme") || "light",
   );
   const [offline, setOffline] = useState(!navigator.onLine);
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   const page =
     [
       ...navigation,
@@ -250,19 +253,9 @@ export default function App() {
             <button
               className="icon-button theme-toggle"
               aria-label="Toggle color theme"
-              onClick={() =>
-                setTheme(
-                  document.documentElement.dataset.theme === "dark"
-                    ? "light"
-                    : "dark",
-                )
-              }
+              onClick={() => setTheme(isDark ? "light" : "dark")}
             >
-              {document.documentElement.dataset.theme === "dark" ? (
-                <Sun size={20} />
-              ) : (
-                <Moon size={20} />
-              )}
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <button
               className="icon-button bell"

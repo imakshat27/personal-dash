@@ -21,15 +21,11 @@ describe("R2 upload consistency", () => {
       delete: vi.fn().mockResolvedValue(null),
     };
     const db = {
-      prepare: vi
-        .fn()
-        .mockReturnValue({
-          bind: vi
-            .fn()
-            .mockReturnValue({
-              run: vi.fn().mockRejectedValue(new Error("D1 unavailable")),
-            }),
+      prepare: vi.fn().mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          run: vi.fn().mockRejectedValue(new Error("D1 unavailable")),
         }),
+      }),
     };
     const provider = new R2StorageProvider(
       bucket as unknown as R2Bucket,

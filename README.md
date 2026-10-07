@@ -19,10 +19,11 @@ For the Worker, build assets first, then run it in another terminal:
 
 ```sh
 npm run build
+npm run db:local
 npm run dev:worker
 ```
 
-Vite proxies `/api` to localhost:8787. The `local` Wrangler environment serves demo API data and bypasses Access only on loopback hostnames. Its demo writes are rejected because browser demo mutations happen locally. For local live mode, add local D1/R2 bindings to `env.local`, set its `APP_MODE` to `live`, and run `npm run db:local`. Wrangler bindings are not inherited between environments.
+Vite proxies `/api` to localhost:8787. The `local` Wrangler environment uses local D1/R2 emulation and bypasses Access only on loopback hostnames. Run `npm run db:local` before live API testing. The zero-valued local database ID is a development placeholder, not a production resource. Wrangler bindings are not inherited between environments. The frontend remains a browser demo until `VITE_API_MODE=live` is set.
 
 ## Architecture
 
@@ -97,7 +98,8 @@ Manifest includes standalone mode, regular/maskable icons, and a responsive shel
 npm run lint
 npm run typecheck
 npm test
+npm run test:e2e
 npm run build
 ```
 
-Tests cover file path validation, private API authorization, malformed requests, local persistence, and R2 upload rollback. Browser checks cover desktop/mobile layout and create/edit/upload/search/theme flows. Commits use the existing user Git identity without assistant attribution. See `docs/architecture.md` for extension decisions.
+Tests cover file path validation, private API authorization, malformed requests, local persistence, and R2 upload rollback. Repeatable Playwright checks cover desktop/mobile layout and create/edit/pin/delete/upload/download/search/theme flows. They use an installed Chrome browser; run `npm run test:e2e`. Commits use the existing user Git identity without assistant attribution. See `docs/architecture.md` for extension decisions.

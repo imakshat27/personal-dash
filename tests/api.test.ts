@@ -21,7 +21,8 @@ describe("local demo notes", () => {
     expect((await api.notes()).find((n) => n.id === note.id)?.title).toBe(
       "Updated",
     );
-    await api.deleteNote(note.id);
+    const deleteNote = api.deleteNote;
+    await deleteNote(note.id);
     expect((await api.notes()).length).toBe(initial);
   });
   it("formats logical storage sizes", () => {

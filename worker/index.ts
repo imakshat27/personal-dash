@@ -9,6 +9,7 @@ import {
 } from "../shared/demo";
 import type { Note } from "../shared/models";
 import { R2StorageProvider } from "./providers/r2";
+import { safeName, safePath } from "./providers/storage";
 interface Env {
   ASSETS: Fetcher;
   DB?: D1Database;
@@ -229,6 +230,8 @@ export default {
         }
         if (method === "PATCH") {
           const data = patchSchema.parse(await request.json());
+          if (data.name) safeName(data.name);
+          if (data.virtualPath) safePath(data.virtualPath);
           if (data.name) await provider.rename(id, data.name);
           if (data.virtualPath) await provider.move(id, data.virtualPath);
           return json(null, mode);
@@ -236,6 +239,8 @@ export default {
       }
       return json({ message: "This endpoint is not available." }, mode, 404);
     } catch (error) {
+      if (error instanceof SyntaxError)
+        return json({ message: "Send valid JSON and try again." }, mode, 400);
       if (error instanceof z.ZodError)
         return json({ message: error.issues[0].message }, mode, 400);
       if (

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -30,6 +30,8 @@ export function Search({
 }) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const resultRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { data: files = [] } = useQuery({
     queryKey: ["files"],
     queryFn: api.files,
@@ -87,7 +89,18 @@ export function Search({
       <div className="search-input">
         <MagnifyingGlass size={22} />
         <input
+          ref={inputRef}
           autoFocus
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              resultRefs.current[0]?.focus();
+            }
+            if (event.key === "Enter" && results[0]) {
+              navigate(results[0].path);
+              onClose();
+            }
+          }}
           aria-label="Search everything"
           placeholder="Search files, notes, pages, and more…"
           value={query}
@@ -99,9 +112,23 @@ export function Search({
         {query ? "RESULTS" : "JUMP TO YOUR SPACE"}
       </p>
       <div className="search-results">
-        {results.map((r) => (
+        {results.map((r, index) => (
           <button
             key={r.id}
+            ref={(element) => {
+              resultRefs.current[index] = element;
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown") {
+                event.preventDefault();
+                resultRefs.current[(index + 1) % results.length]?.focus();
+              }
+              if (event.key === "ArrowUp") {
+                event.preventDefault();
+                if (index === 0) inputRef.current?.focus();
+                else resultRefs.current[index - 1]?.focus();
+              }
+            }}
             onClick={() => {
               navigate(r.path);
               onClose();

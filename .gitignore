@@ -10,3 +10,5 @@ playwright-report/
 test-results/
 .agents/
 .DS_Store
+
+artifacts/

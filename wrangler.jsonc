@@ -11,5 +11,18 @@
   },
   "vars": { "APP_MODE": "live" },
   // Before deployment, add D1 and R2 bindings as described in README.md.
-  "env": { "local": { "vars": { "APP_MODE": "demo", "LOCAL_DEV": "true" } } },
+  "env": {
+    "local": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "orbit-db",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "orbit-files" }],
+      "vars": { "APP_MODE": "live", "LOCAL_DEV": "true" },
+    },
+  },
 }
