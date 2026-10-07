@@ -37,6 +37,8 @@ Restart Vite after changing `.env.local`. The frontend now talks to the local Wo
 
 To restore the sample preview, change `VITE_API_MODE=demo` and restart Vite. Keep your local data folders if you want to retain local backend files.
 
+For the selected hostname `orbit.imakshat.com`, use the exact [Cloudflare values checklist](cloudflare-values.md). The Worker configuration already contains the Custom Domain and disables alternate public Worker URLs.
+
 ## 3. Use your Cloudflare account and publish
 
 Use the account that should own the app. Start with:
