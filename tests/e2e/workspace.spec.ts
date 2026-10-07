@@ -1,4 +1,29 @@
 import { test, expect } from "@playwright/test";
+test("Google login is readable on mobile and explains a disallowed account", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/login?error=account");
+  await expect(
+    page.getByRole("heading", { name: "Welcome to your orbit." }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText(
+    "Choose your personal account",
+  );
+  await expect(
+    page.getByRole("link", { name: "Sign in with Google" }),
+  ).toHaveAttribute("href", "/api/auth/login");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("link", { name: "Sign in with Google" }).focus();
+  await expect(
+    page.getByRole("link", { name: "Sign in with Google" }),
+  ).toBeFocused();
+});
 test("existing Drive file details explain and enforce read-only access", async ({
   page,
 }) => {

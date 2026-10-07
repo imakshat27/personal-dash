@@ -27,6 +27,8 @@ function save(name: string, data: unknown) {
 }
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, options);
+  if (response.headers.get("X-Orbit-Auth") === "required" && !isDemo)
+    window.location.assign("/login");
   const result = (await response.json()) as ApiResult<T> & {
     data: { message?: string };
   };
@@ -63,6 +65,8 @@ export const api = {
     const response = await fetch(
       `/api/storage/files${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
     );
+    if (response.headers.get("X-Orbit-Auth") === "required")
+      window.location.assign("/login");
     const result = (await response.json()) as ApiResult<StorageFile[]> & {
       data: { message?: string };
     };
@@ -151,6 +155,8 @@ export const api = {
   async download(file: StorageFile) {
     if (!isDemo) {
       const response = await fetch(`/api/storage/files/${file.id}/download`);
+      if (response.headers.get("X-Orbit-Auth") === "required")
+        window.location.assign("/login");
       if (!response.ok)
         throw new Error("Could not download this file. Please try again.");
       const disposition = response.headers.get("Content-Disposition");

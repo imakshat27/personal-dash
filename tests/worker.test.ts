@@ -4,7 +4,7 @@ const assets = {
   fetch: async () => new Response("shell"),
 } as unknown as Fetcher;
 describe("private Worker API", () => {
-  it("fails closed when Access is not configured", async () => {
+  it("fails closed when Google sign-in is not configured", async () => {
     const response = await worker.fetch(
       new Request("https://private.example/api/notes"),
       { ASSETS: assets },
@@ -13,7 +13,7 @@ describe("private Worker API", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
   it.each(["connect", "callback"])(
-    "protects the Drive %s endpoint with Access",
+    "protects the Drive %s endpoint with a session",
     async (action) => {
       const response = await worker.fetch(
         new Request(`https://private.example/api/integrations/drive/${action}`),
@@ -36,7 +36,6 @@ describe("private Worker API", () => {
   it("does not allow the development bypass on public hostnames", async () => {
     expect(
       await authorized(new Request("https://public.example/api/notes"), {
-        ASSETS: assets,
         LOCAL_DEV: "true",
       }),
     ).toBe(false);

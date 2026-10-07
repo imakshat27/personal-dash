@@ -43,9 +43,9 @@ For the selected hostname `orbit.imakshat.com`, use the exact [Cloudflare values
 
 Production uses Google Drive for files and Cloudflare D1 for notes and encrypted OAuth tokens. No R2 subscription is needed. Your Cloudflare account and `orbit-db` database identifiers are already in `wrangler.jsonc`.
 
-1. Follow [the Cloudflare checklist](cloudflare-values.md) to protect `orbit.imakshat.com` using Access and confirm the domain is in the same Cloudflare account.
+1. Follow [the Cloudflare checklist](cloudflare-values.md) to add the Google login callback and confirm the domain is in the same Cloudflare account. No Zero Trust subscription is needed.
 2. Follow [the Google Drive guide](google-drive.md) to enable the Drive API, create a web OAuth client, and set the Worker secrets.
-3. Apply both D1 migrations remotely, set `VITE_API_MODE=live`, build, and deploy using the commands in that guide.
+3. Apply all D1 migrations remotely, build, and deploy using the commands in that guide.
 4. Sign into Orbit, open Integrations, and connect the Google account with your 5 TB plan.
 
 ## Environment variables
@@ -53,7 +53,7 @@ Production uses Google Drive for files and Cloudflare D1 for notes and encrypted
 | Variable                                   | Location                     | Purpose                                              |
 | ------------------------------------------ | ---------------------------- | ---------------------------------------------------- |
 | `VITE_API_MODE=demo` or `live`             | `.env.local`                 | Browser demo or Worker API                           |
-| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`         | Worker secrets               | Private sign-in verification                         |
+| `OWNER_EMAIL`                              | `wrangler.jsonc`             | Exact Google email allowed to sign in                |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Worker secrets               | Google OAuth client                                  |
 | `TOKEN_ENCRYPTION_KEY`                     | Worker secret                | Encrypt server-side connection tokens                |
 | `APP_ORIGIN`                               | `wrangler.jsonc`             | Fixed OAuth callback origin                          |
@@ -64,4 +64,4 @@ For optional real Drive testing locally, copy `.dev.vars.example` to `.dev.vars.
 
 ## What remains to configure
 
-The Access team domain, application AUD, allowed sign-in email, domain zone confirmation, and Google OAuth client are still needed. Set secrets using local terminal prompts; keep passwords, API tokens, client secrets, encryption keys, and login codes out of chat.
+Your allowed email is configured and you have entered the Google secrets through Wrangler. Add the new login callback to the Google client and confirm the domain zone before deployment. Set secrets using local terminal prompts; keep passwords, API tokens, client secrets, encryption keys, and login codes out of chat.

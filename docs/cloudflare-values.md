@@ -14,36 +14,37 @@ The Worker is configured for `orbit.imakshat.com` as a Cloudflare Custom Domain.
 
 Do not recreate the database. Production file storage uses your existing Google Drive; skip R2 entirely. Stay on Workers and D1 Free plans. Wrangler authenticates locally with `npx wrangler login`.
 
-## Get the Access values using the dashboard
+## Private sign-in without Zero Trust
 
-1. Open Cloudflare **Zero Trust**. If it is your first visit, complete organization setup and select an appropriate plan.
-2. Go to **Custom pages → Team name and domain**. Copy the team domain, e.g. `akshat.cloudflareaccess.com`, without `https://`.
-3. Go to **Access controls → Applications → Create new application**.
-4. Choose **Self-hosted and private** (some layouts label this simply **Self-hosted**).
-5. Name it **Orbit**. Select **Add public hostname**, using subdomain `orbit` and domain `imakshat.com`. Leave the path empty so the entire hostname is protected.
-6. Add an **Allow** policy named **Only me**. Use **Include → Emails → your exact sign-in email**. Do not use an Everyone or Bypass policy.
-7. In the application's login methods, choose your Cloudflare account login, or configure One-time PIN if you prefer email codes. New organizations may default to Cloudflare login. Make sure the policy email matches the login identity.
-8. Save the application. Back in Applications, select **Configure → Additional settings** and copy **Application Audience (AUD) Tag**. This is the audience tag, not the application ID and not a login token.
+Orbit now uses Google sign-in, restricted to `agarwalakshat2710@gmail.com`. Do not enroll in Zero Trust or enter a card for Access. No Access team domain or AUD is needed. Your existing Google client and encryption key are reused.
 
-If AUD is not visible in your dashboard layout, it can be retrieved through the Access applications API's `aud` field; do not create a new API token just for this if you can use the UI.
-
-## Send these values
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → **Google Auth Platform → Clients → Orbit Web**.
+2. Under **Authorized redirect URIs**, keep the existing Drive callback and add:
 
 ```text
-Access team domain: … .cloudflareaccess.com
-Access application AUD:
-Allowed sign-in email:
-Domain DNS managed in Cloudflare: yes/no
+https://orbit.imakshat.com/api/auth/callback
 ```
 
-These are configuration identifiers. Keep passwords, API tokens, OAuth tokens, and login codes out of chat. Wrangler login authorizes deployment on your machine; no provider secret needs to be pasted here.
+3. Save the client. In **Audience**, ensure `agarwalakshat2710@gmail.com` is a test user if the app is still in Testing.
+4. Confirm `imakshat.com` is active in Cloudflare under the account above. The Worker Custom Domain provisions its DNS record; see the domain prerequisite above for CNAME conflicts.
 
-After these values are supplied, set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` through `npx wrangler secret put NAME --env=""`. Then follow [Google Drive setup](google-drive.md), apply remote migrations, build in live mode, deploy, and verify private sign-in and file storage. Until then the local preview remains in demo mode.
+The Google client ID, client secret, and encryption key have been entered using Wrangler secret prompts by the user. The implementation has not independently verified those remote secrets. Do not paste their values into chat.
+
+## Build and deploy
+
+From the project directory:
+
+```sh
+npx wrangler d1 migrations apply orbit-db --remote --env=""
+npm run deploy
+```
+
+Production builds use `.env.production` with `VITE_API_MODE=live`. The migrations create notes, encrypted provider tokens, and login sessions. The Worker gates all private pages and APIs; only the login page and generic static assets are public. Sessions use secure HttpOnly cookies, expire after seven days, and can be revoked with Sign out. Mutations require the configured origin.
+
+After deployment, open `https://orbit.imakshat.com`, sign in with your allowed Google account, and connect Drive from Integrations. See [Drive setup](google-drive.md) for its separate consent flow.
 
 ## Official instructions
 
 - [Worker Custom Domains and CNAME conflicts](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
 - [Create D1](https://developers.cloudflare.com/d1/get-started/)
-- [Find the Zero Trust team domain](https://developers.cloudflare.com/cloudflare-one/faq/getting-started-faq/)
-- [Create an Access application](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)
-- [Access identity providers](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/)
+- [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect)

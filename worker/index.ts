@@ -1,4 +1,5 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { authorized, authRoute, validMutationOrigin } from "./auth";
+export { authorized } from "./auth";
 import { z } from "zod";
 import {
   demoDashboard,
@@ -25,8 +26,7 @@ interface Env extends DriveEnv {
   APP_MODE?: string;
   STORAGE_PROVIDER?: string;
   LOCAL_DEV?: string;
-  ACCESS_TEAM_DOMAIN?: string;
-  ACCESS_AUD?: string;
+  OWNER_EMAIL?: string;
 }
 const noteSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -40,27 +40,6 @@ const patchSchema = z
     virtualPath: z.string().max(512).optional(),
   })
   .refine((v) => v.name || v.virtualPath, "Provide a name or folder.");
-export async function authorized(request: Request, env: Env): Promise<boolean> {
-  if (
-    env.LOCAL_DEV === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(new URL(request.url).hostname)
-  )
-    return true;
-  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return false;
-  const token = request.headers.get("Cf-Access-Jwt-Assertion");
-  if (!token) return false;
-  try {
-    const issuer = `https://${env.ACCESS_TEAM_DOMAIN}`;
-    await jwtVerify(
-      token,
-      createRemoteJWKSet(new URL(`${issuer}/cdn-cgi/access/certs`)),
-      { issuer, audience: env.ACCESS_AUD },
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
 function json(data: unknown, mode: string, status = 200, nextCursor?: string) {
   return Response.json(
     { data, mode, ...(nextCursor ? { nextCursor } : {}) },
@@ -76,20 +55,48 @@ function json(data: unknown, mode: string, status = 200, nextCursor?: string) {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
-    if (!(await authorized(request, env)))
-      return json(
-        {
-          message:
-            "Sign in through Cloudflare Access to open your private space.",
-        },
-        "live",
-        401,
-      );
     const mode = env.APP_MODE === "live" ? "live" : "demo";
     const path = url.pathname;
     const method = request.method;
     try {
+      const auth = await authRoute(request, env);
+      if (auth) return auth;
+      const publicAsset =
+        path.startsWith("/assets/") ||
+        /^\/(?:favicon\.svg|icon-(?:192|512)\.png|manifest\.webmanifest|registerSW\.js|sw\.js|workbox-[\w-]+\.js)$/.test(
+          path,
+        );
+      if (path === "/login" || publicAsset) return env.ASSETS.fetch(request);
+      if (!(await authorized(request, env))) {
+        if (path.startsWith("/api/")) {
+          const response = json(
+            { message: "Sign in with Google to open your private space." },
+            "live",
+            401,
+          );
+          response.headers.set("X-Orbit-Auth", "required");
+          return response;
+        }
+        return new Response(null, {
+          status: 302,
+          headers: { Location: "/login", "Cache-Control": "no-store" },
+        });
+      }
+      if (!validMutationOrigin(request, env))
+        return json(
+          { message: "This request did not come from Orbit." },
+          mode,
+          403,
+        );
+      if (!path.startsWith("/api/")) {
+        const response = await env.ASSETS.fetch(request);
+        const headers = new Headers(response.headers);
+        headers.set("Cache-Control", "no-store");
+        return new Response(response.body, {
+          status: response.status,
+          headers,
+        });
+      }
       if (mode === "live") {
         const oauth = await driveOAuth(request, env);
         if (oauth) return oauth;

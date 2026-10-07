@@ -24,7 +24,18 @@ Small labels and supporting text now use 12–14 px sizing, stronger secondary t
 - Production uses Drive and D1, with no R2 binding or subscription required. Local R2 emulation remains solely for backend checks.
 - ESLint and strict TypeScript checks pass. All 26 unit tests and 5 Playwright flows pass, including browser read-only controls for existing files.
 - Google responses were mocked to verify OAuth state, PKCE, encrypted token persistence, revoked-token handling, pagination, existing-file mutation rejection, managed upload/trash, PDF export, and actual account quota.
-- OAuth endpoints reject unauthenticated requests before redirects or token exchanges.
+- Drive OAuth endpoints reject unauthenticated requests before redirects or token exchanges.
 - Desktop storage and the 375 px Drive setup dialog were visually inspected; the dialog stays within the viewport with reduced motion enabled.
 - Local token-table migration, production build, and Wrangler dry run pass. The dry run lists D1, assets, and Drive configuration without an R2 binding.
-- No Google account is connected and nothing has been deployed. Actual account and custom-domain validation await OAuth and Access configuration.
+- No Google account is connected and nothing has been deployed. Actual account and custom-domain validation await OAuth and domain configuration.
+
+## Google sign-in replaces Cloudflare Access
+
+Zero Trust onboarding requires payment details even on its Free plan, so Orbit no longer depends on it. Only `agarwalakshat2710@gmail.com` can sign in. The Google client, secret, and encryption key are reused; an additional authorized login callback is required.
+
+- Strict TypeScript, ESLint, 42 unit tests, and 6 Playwright flows pass.
+- Signed Google ID token tests reject wrong issuer, audience, nonce, email, unverified email, altered signatures, and expired tokens. A different account never receives a session cookie.
+- Sign-in uses PKCE and encrypted browser state; D1 stores only hashes of random session cookies. Logout revokes the current session; expired and unrecognized sessions are rejected.
+- Private HTML redirects to login and unauthenticated APIs return 401. Production mutations and logout reject missing or cross-site origins, including requests with a valid owner session.
+- Local D1 session migration, production live-mode build, and deployment dry run pass. Login visuals were checked at 1440 px and 375 px in both themes; mobile keyboard access and overflow are covered by Playwright.
+- Actual Google login and custom-domain deployment are still pending; tests use locally signed mock Google identities. No deployment or DNS changes were performed.

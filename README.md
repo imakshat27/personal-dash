@@ -25,7 +25,7 @@ npm run db:local
 npm run dev:worker
 ```
 
-Vite proxies `/api` to localhost:8787. The `local` Wrangler environment uses local D1/R2 emulation and bypasses Access only on loopback hostnames. Run `npm run db:local` before live API testing. The zero-valued local database ID is a development placeholder, not a production resource. Wrangler bindings are not inherited between environments. The frontend remains a browser demo until `VITE_API_MODE=live` is set.
+Vite proxies `/api` to localhost:8787. The `local` Wrangler environment uses local D1/R2 emulation and bypasses sign-in only on loopback hostnames. Run `npm run db:local` before live API testing. The zero-valued local database ID is a development placeholder, not a production resource. Wrangler bindings are not inherited between environments. The frontend remains a browser demo until `VITE_API_MODE=live` is set.
 
 ## Architecture
 
@@ -35,7 +35,7 @@ src/                   React application and normalized API client
   pages/               Dashboard, storage, notes, calendar, sites, settings
   lib/api.ts           Demo/live data boundary and browser persistence
 shared/                Provider-independent contracts and sample data
-worker/                Same-origin Cloudflare Worker API + Access verification
+worker/                Same-origin Cloudflare Worker API + Google identity/session verification
   providers/           Storage contract, Google Drive OAuth/adapter, local R2 adapter
 migrations/            Reproducible D1 migrations
 public/                App icons and PWA assets
@@ -49,9 +49,9 @@ Dashboard sections are isolated reusable panels. Site analytics, GitHub synchron
 
 The production account and D1 binding are configured for `orbit.imakshat.com`. Production has no R2 binding and requires no R2 subscription. Keep Workers and D1 on Free plans.
 
-Follow [Cloudflare Access and domain setup](docs/cloudflare-values.md), then [Google Drive OAuth setup](docs/google-drive.md). Google credentials and the encryption key belong in Worker secrets, never `VITE_*` variables. The Worker verifies Access JWT signature, issuer, and audience for every API request, including OAuth; protect the entire hostname through Access as well.
+Follow [Google sign-in and domain setup](docs/cloudflare-values.md), then [Google Drive OAuth setup](docs/google-drive.md). Google credentials and the encryption key belong in Worker secrets, never `VITE_*` variables. Google sign-in checks signed identity, verified email, audience, issuer, and nonce. Only the configured owner can receive an app session. The Worker gates private pages and APIs, and checks Origin for mutations.
 
-Set `VITE_API_MODE=live` in `.env.local`, apply remote D1 migrations, and deploy only after Access and Google configuration are ready. No deployment or live Google connection has been performed yet.
+Production builds default to live mode through `.env.production`. Apply remote D1 migrations and deploy once the Google login callback and domain are configured. No deployment or live Google connection has been performed yet.
 
 ## API conventions
 
@@ -72,7 +72,7 @@ Uploads are limited to 25 MB in this iteration. They go into an actual `Orbit` f
 
 ## PWA and privacy
 
-Manifest includes standalone mode, regular/maskable icons, and a responsive shell. Generated service worker caches only static application assets; it excludes `/api` navigation and never caches API responses. Live private data is unavailable offline. Demo data remains locally accessible. Google Fonts is the only third-party frontend resource in this version; the system sans-serif fallback works offline. In-browser storage may be cleared by the browser. Signing out of Access does not remove browser demo data; do not put sensitive production material in the demo.
+Manifest includes standalone mode, regular/maskable icons, and a responsive shell. Generated service worker caches only static application assets; it excludes `/api` navigation and never caches API responses. Live private data is unavailable offline. Demo data remains locally accessible. Google Fonts is the only third-party frontend resource in this version; the system sans-serif fallback works offline. In-browser storage may be cleared by the browser. Signing out does not remove browser demo data; do not put sensitive production material in the demo.
 
 ## Checks and Git
 

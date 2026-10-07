@@ -1,6 +1,9 @@
 import { base64url } from "jose";
 import { ProviderError } from "./errors";
-export interface DriveEnv {
+import { seal, unseal } from "../security";
+export { seal, unseal } from "../security";
+import { verifyGoogleIdentity, type AuthEnv } from "../auth";
+export interface DriveEnv extends AuthEnv {
   DB?: D1Database;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
@@ -18,6 +21,7 @@ interface TokenResponse {
   refresh_token?: string;
   expires_in: number;
   scope?: string;
+  id_token?: string;
 }
 export const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 export const DRIVE_READ_SCOPE =
@@ -31,37 +35,6 @@ export function driveConfigured(env: DriveEnv) {
     env.TOKEN_ENCRYPTION_KEY &&
     env.APP_ORIGIN,
   );
-}
-async function key(secret: string) {
-  const bytes = base64url.decode(secret);
-  if (bytes.length !== 32)
-    throw new ProviderError("Drive encryption key must contain 32 bytes.", 503);
-  return crypto.subtle.importKey(
-    "raw",
-    bytes as BufferSource,
-    "AES-GCM",
-    false,
-    ["encrypt", "decrypt"],
-  );
-}
-export async function seal(value: unknown, secret: string) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const data = new TextEncoder().encode(JSON.stringify(value));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    await key(secret),
-    data,
-  );
-  return `${base64url.encode(iv)}.${base64url.encode(new Uint8Array(encrypted))}`;
-}
-export async function unseal<T>(value: string, secret: string): Promise<T> {
-  const [iv, data] = value.split(".");
-  const decoded = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: base64url.decode(iv) as BufferSource },
-    await key(secret),
-    base64url.decode(data) as BufferSource,
-  );
-  return JSON.parse(new TextDecoder().decode(decoded));
 }
 function configured(env: DriveEnv) {
   if (!driveConfigured(env))
@@ -201,8 +174,9 @@ export async function driveOAuth(
         ),
       ),
     );
+    const nonce = base64url.encode(crypto.getRandomValues(new Uint8Array(32)));
     const cookie = await seal(
-      { state, verifier, expiresAt: Date.now() + 600000 },
+      { state, verifier, nonce, expiresAt: Date.now() + 600000 },
       config.key,
     );
     const auth = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -210,7 +184,9 @@ export async function driveOAuth(
       client_id: config.id,
       redirect_uri: redirectUri,
       response_type: "code",
-      scope: `${DRIVE_SCOPE} ${DRIVE_READ_SCOPE}`,
+      scope: `openid email ${DRIVE_SCOPE} ${DRIVE_READ_SCOPE}`,
+      nonce,
+      ...(env.OWNER_EMAIL ? { login_hint: env.OWNER_EMAIL } : {}),
       access_type: "offline",
       prompt: "consent",
       state,
@@ -237,7 +213,12 @@ export async function driveOAuth(
       "The connection request expired. Try Connect Google Drive again.",
       400,
     );
-  let pending: { state: string; verifier: string; expiresAt: number };
+  let pending: {
+    state: string;
+    verifier: string;
+    nonce: string;
+    expiresAt: number;
+  };
   try {
     pending = await unseal(cookie, config.key);
   } catch {
@@ -286,6 +267,7 @@ export async function driveOAuth(
   if (!response.ok) return redirect("failed");
   const tokens = (await response.json()) as TokenResponse;
   if (
+    !tokens.id_token ||
     !tokens.refresh_token ||
     !tokens.access_token ||
     ![DRIVE_SCOPE, DRIVE_READ_SCOPE].every((scope) =>
@@ -293,6 +275,11 @@ export async function driveOAuth(
     )
   )
     return redirect("failed");
+  try {
+    await verifyGoogleIdentity(tokens.id_token!, env, pending.nonce);
+  } catch {
+    return redirect("failed");
+  }
   await saveTokens(env, {
     refreshToken: tokens.refresh_token,
     accessToken: tokens.access_token,

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { base64url } from "jose";
 import { GoogleDriveProvider } from "../worker/providers/drive";
+import { googleToken, jwks } from "./google-fixture";
 import {
   driveOAuth,
   driveToken,
@@ -45,6 +46,7 @@ function env(db: D1Database): DriveEnv {
     GOOGLE_CLIENT_SECRET: "client-secret",
     TOKEN_ENCRYPTION_KEY: secret,
     APP_ORIGIN: "https://orbit.imakshat.com",
+    OWNER_EMAIL: "owner@gmail.com",
   };
 }
 async function connected() {
@@ -88,6 +90,8 @@ describe("Drive authorization", () => {
     );
     const auth = new URL(start!.headers.get("Location")!);
     expect(auth.searchParams.get("scope")?.split(" ")).toEqual([
+      "openid",
+      "email",
       DRIVE_SCOPE,
       DRIVE_READ_SCOPE,
     ]);
@@ -96,16 +100,19 @@ describe("Drive authorization", () => {
       "HttpOnly; SameSite=Lax; Secure",
     );
     const cookie = start!.headers.get("Set-Cookie")!.split(";")[0];
-    const pending = await unseal<{ verifier: string }>(
+    const pending = await unseal<{ verifier: string; nonce: string }>(
       cookie.split("=")[1],
       secret,
     );
-    const fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
+    const idToken = await googleToken(pending.nonce);
+    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+      if (url.endsWith("/certs")) return Response.json(jwks);
       expect((init.body as URLSearchParams).get("code_verifier")).toBe(
         pending.verifier,
       );
       return Response.json({
         access_token: "private-access",
+        id_token: idToken,
         refresh_token: "private-refresh",
         expires_in: 3600,
         scope: `${DRIVE_READ_SCOPE} ${DRIVE_SCOPE}`,
@@ -128,7 +135,7 @@ describe("Drive authorization", () => {
     expect(await unseal(saved, secret)).toMatchObject({
       refreshToken: "private-refresh",
     });
-    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
   it.each(["mismatch", "expired", "missing"])(
     "rejects %s OAuth state before exchanging a code",

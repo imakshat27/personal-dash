@@ -4,6 +4,4 @@ GOOGLE_CLIENT_ID=your-client.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 # Generate using: node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))"
 TOKEN_ENCRYPTION_KEY=replace-with-a-generated-32-byte-base64url-key
-# Production Access values are set through wrangler secret put, not needed on localhost.
-ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
-ACCESS_AUD=your-access-application-audience
+# OWNER_EMAIL is already configured in wrangler.jsonc. No Cloudflare Access secrets needed.

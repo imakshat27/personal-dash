@@ -28,6 +28,7 @@ import { Capture } from "./components/capture";
 import { Search } from "./components/search";
 import { Modal } from "./components/ui";
 import { isDemo } from "./lib/api";
+import { Login } from "./pages/login";
 import type { Note } from "../shared/models";
 const navigation = [
   { to: "/", label: "Dashboard", icon: SquaresFour },
@@ -62,6 +63,10 @@ function OrbitLogo() {
   );
 }
 export default function App() {
+  const location = useLocation();
+  return location.pathname === "/login" ? <Login /> : <Workspace />;
+}
+function Workspace() {
   const location = useLocation();
   const [search, setSearch] = useState(false);
   const [capture, setCapture] = useState(false);
@@ -366,11 +371,16 @@ export default function App() {
           <h2>Akshat’s space</h2>
           <p>One person. Many little possibilities.</p>
           <span className="demo-pill">
-            {isDemo
-              ? "Private local preview"
-              : "Protected by Cloudflare Access"}
+            {isDemo ? "Private local preview" : "Private Google sign-in"}
           </span>
         </div>
+        {!isDemo && (
+          <form action="/api/auth/logout" method="post">
+            <button className="secondary" type="submit">
+              Sign out
+            </button>
+          </form>
+        )}
         <button className="primary" onClick={() => setProfile(false)}>
           Back to my orbit
         </button>
