@@ -243,8 +243,8 @@ export function Dashboard({
               onClick={() => navigate("/calendar")}
             >
               <span className="event-time">
-                {time(event.start)}
-                <small>{time(event.end)}</small>
+                {event.allDay ? "All day" : time(event.start)}
+                {!event.allDay && <small>{time(event.end)}</small>}
               </span>
               <span className="event-title">
                 <strong>{event.title}</strong>
@@ -254,7 +254,8 @@ export function Dashboard({
           ))}
           {!data.data.events.length && (
             <div className="small-empty">
-              A clear calendar. A little breathing room.
+              {data.data.integrationErrors?.calendar ||
+                "A clear calendar. A little breathing room."}
             </div>
           )}
           <div className="agenda-bottom">

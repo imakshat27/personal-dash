@@ -130,7 +130,7 @@ describe("Drive authorization", () => {
     expect(result!.headers.get("Set-Cookie")).toContain("Max-Age=0");
     const saved = store.writes.find((write) =>
       write.sql.includes("provider_tokens"),
-    )!.values[0] as string;
+    )!.values[1] as string;
     expect(saved).not.toContain("private-");
     expect(await unseal(saved, secret)).toMatchObject({
       refreshToken: "private-refresh",

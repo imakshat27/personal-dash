@@ -1,4 +1,20 @@
 import { test, expect } from "@playwright/test";
+test("calendar day navigation does not reuse today's events", async ({
+  page,
+}) => {
+  await page.goto("/calendar");
+  await expect(
+    page.getByText("Design catch-up", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Next day" }).click();
+  await expect(
+    page.getByText("Design catch-up", { exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(
+    page.getByText("Design catch-up", { exact: true }),
+  ).toBeVisible();
+});
 test("Google login is readable on mobile and explains a disallowed account", async ({
   page,
 }) => {

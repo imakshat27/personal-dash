@@ -1,5 +1,8 @@
 import { authorized, authRoute, validMutationOrigin } from "./auth";
 export { authorized } from "./auth";
+import { googleConnected } from "./providers/google-auth";
+import { GoogleCalendarProvider } from "./providers/calendar";
+import { indiaDate, dayWindow } from "../shared/calendar";
 import { z } from "zod";
 import {
   demoDashboard,
@@ -105,36 +108,58 @@ export default {
         return json(
           mode === "demo"
             ? demoDashboard
-            : { sites: [], events: [], activity: [] },
+            : {
+                sites: [],
+                ...(await calendarWidget(env)),
+                activity: [],
+              },
           mode,
         );
-      if (path === "/api/calendar" && method === "GET")
-        return json(mode === "demo" ? demoDashboard.events : [], mode);
+      if (path === "/api/calendar" && method === "GET") {
+        const date = url.searchParams.get("date") || indiaDate();
+        dayWindow(date);
+        return json(
+          mode === "demo"
+            ? demoDashboard.events
+            : await calendarEvents(env, date),
+          mode,
+        );
+      }
       if (path === "/api/sites" && method === "GET")
         return json(mode === "demo" ? demoDashboard.sites : [], mode);
       if (path === "/api/integrations" && method === "GET") {
-        const driveStatus =
+        const statuses =
           mode === "demo"
-            ? "demo"
-            : driveConfigured(env)
-              ? (
-                  await database(env)
-                    .prepare("SELECT status FROM integrations WHERE id='drive'")
-                    .first<{ status: string }>()
-                )?.status || "not_configured"
-              : "not_configured";
+            ? []
+            : (
+                await Promise.all(
+                  ["drive", "calendar"].map(async (id) => [
+                    id,
+                    driveConfigured(env)
+                      ? (
+                          await database(env)
+                            .prepare(
+                              "SELECT status FROM integrations WHERE id=?",
+                            )
+                            .bind(id)
+                            .first<{ status: string }>()
+                        )?.status || "not_configured"
+                      : "not_configured",
+                  ]),
+                )
+              ).map(([id, status]) => ({ id, status }));
         return json(
           demoIntegrations
             .filter((i) => i.id !== "r2")
             .map((i) => ({
               ...i,
-              configured: i.id === "drive" && driveConfigured(env),
+              configured:
+                ["drive", "calendar"].includes(i.id) && driveConfigured(env),
               status:
                 mode === "demo"
                   ? i.status
-                  : i.id === "drive"
-                    ? driveStatus
-                    : "not_configured",
+                  : statuses.find((s) => s.id === i.id)?.status ||
+                    "not_configured",
             })),
           mode,
         );
@@ -287,7 +312,7 @@ export default {
         return json({ message: error.issues[0].message }, mode, 400);
       if (
         error instanceof Error &&
-        /filename|virtual folder/.test(error.message)
+        /filename|virtual folder|calendar date/.test(error.message)
       )
         return json({ message: error.message }, mode, 400);
       console.error("API request failed", error);
@@ -307,4 +332,26 @@ function storage(env: Env) {
   if (env.STORAGE_PROVIDER !== "r2") return new GoogleDriveProvider(env);
   if (!env.FILES) throw new Error("R2 binding is missing.");
   return new R2StorageProvider(env.FILES, database(env));
+}
+
+async function calendarEvents(env: Env, date: string) {
+  return (await googleConnected(env, "calendar"))
+    ? new GoogleCalendarProvider(env).events(date)
+    : [];
+}
+
+async function calendarWidget(env: Env) {
+  try {
+    return { events: await calendarEvents(env, indiaDate()) };
+  } catch (error) {
+    return {
+      events: [],
+      integrationErrors: {
+        calendar:
+          error instanceof ProviderError
+            ? error.message
+            : "Calendar is temporarily unavailable. Try again shortly.",
+      },
+    };
+  }
 }

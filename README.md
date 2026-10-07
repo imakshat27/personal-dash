@@ -43,7 +43,7 @@ public/                App icons and PWA assets
 
 External services → server-side adapters → normalized APIs → UI. React never receives provider credentials. Google Drive provides browsing, downloads, uploads, rename, virtual moves, trash, and actual account quota. Existing files are read-only; mutations require an app-private Orbit upload marker checked by the backend. D1 stores notes and AES-GCM encrypted OAuth tokens. Local R2 emulation remains available for credential-free backend tests.
 
-Dashboard sections are isolated reusable panels. Site analytics, GitHub synchronization, calendar writes, full-drive search indexing, and widget rearranging remain future milestones. File browser search covers loaded pages; global search uses the newest file page. Neither searches file contents.
+Dashboard sections are isolated reusable panels. Google Calendar reads your primary calendar with day navigation, recurring instances, and all-day entries. Site analytics, GitHub synchronization, calendar writes, full-drive search indexing, and widget rearranging remain future milestones. File browser search covers loaded pages; global search uses the newest file page. Neither searches file contents.
 
 ## Cloud deployment
 
@@ -51,7 +51,7 @@ The production account and D1 binding are configured for `orbit.imakshat.com`. P
 
 Follow [Google sign-in and domain setup](docs/cloudflare-values.md), then [Google Drive OAuth setup](docs/google-drive.md). Google credentials and the encryption key belong in Worker secrets, never `VITE_*` variables. Google sign-in checks signed identity, verified email, audience, issuer, and nonce. Only the configured owner can receive an app session. The Worker gates private pages and APIs, and checks Origin for mutations.
 
-Production builds default to live mode through `.env.production`. Apply remote D1 migrations and deploy once the Google login callback and domain are configured. Orbit is deployed at `https://orbit.imakshat.com`. Google sign-in and Drive consent still need to be completed by the owner.
+Production builds default to live mode through `.env.production`. Apply remote D1 migrations and deploy once the Google login callback and domain are configured. Orbit is deployed at `https://orbit.imakshat.com`. The owner has completed Google sign-in and Drive consent. Calendar setup is described in [the Calendar guide](docs/google-calendar.md).
 
 ## API conventions
 

@@ -48,3 +48,11 @@ Zero Trust onboarding requires payment details even on its Free plan, so Orbit n
 - Cloudflare public DNS resolves the new hostname. The local resolver initially retained an NXDOMAIN result; live checks used Cloudflare's resolved IP with hostname and TLS certificate validation preserved.
 - Live login returns 200; private pages redirect to login; notes and Drive consent endpoints return 401 without a session. Invalid OAuth state is rejected. Login redirects to Google with the configured callback, PKCE S256, valid client-ID format, and a Secure HttpOnly cookie.
 - The deployed login page renders in Chrome without application errors. Actual Google sign-in and Drive consent require owner interaction and are not yet verified.
+
+## Google Calendar milestone
+
+- Added primary-calendar read access with recurring instances, all-day dates, daily IST boundaries, and event pagination.
+- Google OAuth/token handling is shared; Drive and Calendar keep independent encrypted token records and state cookies. Existing Drive rows remain compatible.
+- Strict TypeScript, ESLint, 46 unit tests, 7 browser flows, and production build pass. Checks cover calendar dates, pagination, all-day data, token isolation, reauthentication, and day navigation.
+- Calendar failures are shown within the dashboard's agenda; other dashboard panels continue to work.
+- Owner consent is still required after enabling Calendar API, registering its callback, and adding its read scope. Actual Calendar account access has not been verified.

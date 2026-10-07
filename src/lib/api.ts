@@ -1,5 +1,6 @@
 import type {
   ApiResult,
+  CalendarEvent,
   DashboardData,
   Integration,
   Note,
@@ -46,6 +47,14 @@ function body(data: unknown, method = "POST"): RequestInit {
   };
 }
 export const api = {
+  calendar: (date: string) =>
+    isDemo
+      ? Promise.resolve(
+          demoDashboard.events.filter(
+            (e) => e.start.slice(0, 10) <= date && e.end.slice(0, 10) >= date,
+          ),
+        )
+      : request<CalendarEvent[]>(`/calendar?date=${encodeURIComponent(date)}`),
   dashboard: () =>
     isDemo
       ? Promise.resolve(demoDashboard)

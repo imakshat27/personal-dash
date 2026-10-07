@@ -34,6 +34,7 @@ export interface Site {
   series: number[];
 }
 export interface CalendarEvent {
+  allDay?: boolean;
   id: string;
   title: string;
   start: string;
@@ -50,6 +51,7 @@ export interface Integration {
   status: "demo" | "connected" | "not_configured" | "needs_reauth";
 }
 export interface DashboardData {
+  integrationErrors?: { calendar?: string };
   sites: Site[];
   events: CalendarEvent[];
   activity: {

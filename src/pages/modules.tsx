@@ -1,3 +1,4 @@
+import { indiaDate } from "../../shared/calendar";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -93,16 +94,19 @@ export function Sites() {
   );
 }
 export function Calendar() {
-  const data = useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard });
   const [offset, setOffset] = useState(0);
+  const selectedDate = indiaDate(new Date(Date.now() + offset * 86400000));
+  const date = new Date(`${selectedDate}T12:00:00+05:30`);
+  const data = useQuery({
+    queryKey: ["calendar", selectedDate],
+    queryFn: () => api.calendar(selectedDate),
+  });
   if (data.isPending) return <Loading />;
   if (data.error)
     return (
       <ErrorState message={data.error.message} retry={() => data.refetch()} />
     );
-  const date = new Date();
-  date.setDate(date.getDate() + offset);
-  const events = offset === 0 ? data.data.events : [];
+  const events = data.data;
   return (
     <>
       <div className="page-intro">
@@ -115,7 +119,7 @@ export function Calendar() {
         </div>
         <span className="health-label">
           <CalendarBlank size={19} />
-          {isDemo ? "Sample calendar" : "Calendar integration"}
+          {isDemo ? "Sample calendar" : "Google Calendar · Read-only"}
         </span>
       </div>
       <section className="panel calendar-panel">
@@ -125,6 +129,7 @@ export function Calendar() {
               weekday: "long",
               day: "numeric",
               month: "long",
+              timeZone: "Asia/Kolkata",
             })}
           </h2>
           <div>
@@ -155,8 +160,8 @@ export function Calendar() {
             {events.map((e) => (
               <article key={e.id} className={`calendar-event ${e.color}`}>
                 <div className="calendar-time">
-                  {time(e.start)}
-                  <span>{time(e.end)}</span>
+                  {e.allDay ? "All day" : time(e.start)}
+                  {!e.allDay && <span>{time(e.end)}</span>}
                 </div>
                 <div>
                   <h3>{e.title}</h3>
@@ -178,8 +183,9 @@ export function Calendar() {
         <div>
           <strong>One view for your days.</strong>
           <p>
-            Google Calendar is planned for a future adapter. No calendar account
-            is connected yet.
+            {isDemo
+              ? "This preview shows sample events."
+              : "Your primary Google calendar appears here with recurring and all-day events. Connect it from Integrations."}
           </p>
         </div>
       </div>
@@ -208,20 +214,23 @@ export function Integrations() {
           <p>Connect your favorite tools. Give them a shared home.</p>
         </div>
       </div>
-      {new URLSearchParams(window.location.search).has("drive") && (
-        <div className="context-banner">
-          <CheckCircle size={24} />
-          <p>
-            {new URLSearchParams(window.location.search).get("drive") ===
-            "connected"
-              ? "Google Drive is connected. Your storage is ready."
-              : new URLSearchParams(window.location.search).get("drive") ===
-                  "cancelled"
-                ? "Google sign-in was cancelled. You can connect whenever you’re ready."
-                : "Google could not finish connecting. Check the setup and try again."}
-          </p>
-        </div>
-      )}
+      {["drive", "calendar"].map((id) => {
+        const outcome = new URLSearchParams(window.location.search).get(id);
+        if (!outcome) return null;
+        const name = id === "drive" ? "Google Drive" : "Google Calendar";
+        return (
+          <div className="context-banner" key={id}>
+            <CheckCircle size={24} />
+            <p>
+              {outcome === "connected"
+                ? `${name} is connected. You’re ready to go.`
+                : outcome === "cancelled"
+                  ? "Google sign-in was cancelled. Connect whenever you’re ready."
+                  : `${name} could not finish connecting. Check the setup and try again.`}
+            </p>
+          </div>
+        );
+      })}
       <div className="integration-grid">
         {data.data.map((i) => {
           const Icon =
@@ -303,6 +312,29 @@ export function Integrations() {
               <p>
                 Your Drive connection isn’t ready yet. Complete the one-time
                 account setup, then reload this page to connect.
+              </p>
+            )}
+          </>
+        ) : selected?.id === "calendar" ? (
+          <>
+            <p>
+              See your primary Google calendar in Orbit, including recurring and
+              all-day events. This connection can only read events.
+            </p>
+            {isDemo ? (
+              <p>
+                Connect your account after deployment to see your real events.
+              </p>
+            ) : selected.configured ? (
+              <a className="primary" href="/api/integrations/calendar/connect">
+                {selected.status === "connected"
+                  ? "Reconnect Google Calendar"
+                  : "Connect Google Calendar"}
+              </a>
+            ) : (
+              <p>
+                Finish the one-time Google account setup, then reload this page
+                to connect.
               </p>
             )}
           </>
