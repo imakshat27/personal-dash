@@ -4,6 +4,8 @@ A private personal command center. A little space for your digital world.
 
 This first milestone includes a responsive light/dark dashboard, unified file browser, persistent notes, quick capture, global search (⌘/Ctrl K), calendar preview, integrations setup, and an installable PWA shell. Sample analytics, files, and events are explicitly labeled. Local demo uploads retain their contents in IndexedDB; metadata and notes use localStorage. Browser demo data is device-local, unencrypted, and not a backup. Live mode stores notes and file metadata in D1 and file contents in R2.
 
+For a step-by-step guide covering the preview, local backend, environment variables, and cloud deployment, see [Get Orbit running](docs/setup.md).
+
 ## Run locally
 
 Requires Node 22.12+ (or a supported newer release).
