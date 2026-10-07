@@ -20,10 +20,13 @@
   ],
   "vars": {
     "APP_MODE": "live",
+    "STORAGE_PROVIDER": "drive",
+    "APP_ORIGIN": "https://orbit.imakshat.com",
   },
-  // Production D1 is configured. Add FILES after enabling R2 and creating the bucket.
+  // Google Drive uses OAuth server secrets; R2 is not required for production.
   "env": {
     "local": {
+      "routes": [],
       "d1_databases": [
         {
           "binding": "DB",
@@ -41,6 +44,8 @@
       "vars": {
         "APP_MODE": "live",
         "LOCAL_DEV": "true",
+        "STORAGE_PROVIDER": "r2",
+        "APP_ORIGIN": "http://localhost:5173",
       },
     },
   },

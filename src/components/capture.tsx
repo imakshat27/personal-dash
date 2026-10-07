@@ -129,7 +129,7 @@ export function Capture({
               </strong>
               <span>
                 Up to 25 MB · Stored in{" "}
-                {isDemo ? "this browser" : "Cloudflare R2"}
+                {isDemo ? "this browser" : "Google Drive"}
               </span>
               <input
                 id="upload-file"

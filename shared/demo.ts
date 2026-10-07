@@ -25,7 +25,7 @@ export const demoFiles: StorageFile[] = [
   },
   {
     id: "f2",
-    provider: "r2",
+    provider: "drive",
     providerId: "demo2",
     name: "Homepage explorations.fig",
     virtualPath: "/Design",
@@ -35,7 +35,7 @@ export const demoFiles: StorageFile[] = [
   },
   {
     id: "f3",
-    provider: "r2",
+    provider: "drive",
     providerId: "demo3",
     name: "Weekend in the mountains.jpg",
     virtualPath: "/Photos",
@@ -55,7 +55,7 @@ export const demoFiles: StorageFile[] = [
   },
   {
     id: "f5",
-    provider: "r2",
+    provider: "drive",
     providerId: "demo5",
     name: "Portfolio backup.zip",
     virtualPath: "/Archives",
@@ -65,8 +65,7 @@ export const demoFiles: StorageFile[] = [
   },
 ];
 export const demoUsage: StorageUsage[] = [
-  { provider: "r2", label: "Cloudflare R2", used: 6.8e9, capacity: null },
-  { provider: "drive", label: "Google Drive", used: 8.2e9, capacity: 15e9 },
+  { provider: "drive", label: "Google Drive", used: 15e9, capacity: 5e12 },
 ];
 export const demoNotes: Note[] = [
   {
@@ -181,13 +180,6 @@ export const demoIntegrations: Integration[] = [
     name: "Cloudflare",
     category: "Infrastructure",
     description: "Your sites, Workers, and traffic in one place.",
-    status: "demo",
-  },
-  {
-    id: "r2",
-    name: "Cloudflare R2",
-    category: "Storage",
-    description: "A home for files, backups, and everything else.",
     status: "demo",
   },
   {

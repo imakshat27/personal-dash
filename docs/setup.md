@@ -39,84 +39,29 @@ To restore the sample preview, change `VITE_API_MODE=demo` and restart Vite. Kee
 
 For the selected hostname `orbit.imakshat.com`, use the exact [Cloudflare values checklist](cloudflare-values.md). The Worker configuration already contains the Custom Domain and disables alternate public Worker URLs.
 
-## 3. Use your Cloudflare account and publish
+## 3. Publish with your existing Google Drive
 
-Use the account that should own the app. Start with:
+Production uses Google Drive for files and Cloudflare D1 for notes and encrypted OAuth tokens. No R2 subscription is needed. Your Cloudflare account and `orbit-db` database identifiers are already in `wrangler.jsonc`.
 
-```sh
-npx wrangler login
-npx wrangler d1 create orbit-db
-npx wrangler r2 bucket create orbit-files
-```
+1. Follow [the Cloudflare checklist](cloudflare-values.md) to protect `orbit.imakshat.com` using Access and confirm the domain is in the same Cloudflare account.
+2. Follow [the Google Drive guide](google-drive.md) to enable the Drive API, create a web OAuth client, and set the Worker secrets.
+3. Apply both D1 migrations remotely, set `VITE_API_MODE=live`, build, and deploy using the commands in that guide.
+4. Sign into Orbit, open Integrations, and connect the Google account with your 5 TB plan.
 
-These create actual cloud resources. R2 must be enabled on your Cloudflare account. Keep the bucket private; public bucket access is not needed. Login handles deployment authentication, so an API token or R2 S3 access key is not required for this app's storage adapter.
+## Environment variables
 
-Add these **top-level production bindings**, beside `vars` in `wrangler.jsonc`, replacing the database ID with the one D1 returns:
+| Variable                                   | Location                     | Purpose                                              |
+| ------------------------------------------ | ---------------------------- | ---------------------------------------------------- |
+| `VITE_API_MODE=demo` or `live`             | `.env.local`                 | Browser demo or Worker API                           |
+| `ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`         | Worker secrets               | Private sign-in verification                         |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Worker secrets               | Google OAuth client                                  |
+| `TOKEN_ENCRYPTION_KEY`                     | Worker secret                | Encrypt server-side connection tokens                |
+| `APP_ORIGIN`                               | `wrangler.jsonc`             | Fixed OAuth callback origin                          |
+| `STORAGE_PROVIDER`                         | `wrangler.jsonc`             | `drive` in production; local test emulator uses `r2` |
+| `LOCAL_DEV=true`                           | Named local environment only | Loopback development authentication bypass           |
 
-```jsonc
-"d1_databases": [
-  {
-    "binding": "DB",
-    "database_name": "orbit-db",
-    "database_id": "THE_ID_FROM_D1_CREATE",
-    "migrations_dir": "migrations"
-  }
-],
-"r2_buckets": [
-  { "binding": "FILES", "bucket_name": "orbit-files" }
-]
-```
+For optional real Drive testing locally, copy `.dev.vars.example` to `.dev.vars.local` and follow the local section of the Drive guide. Secret files and `.env.local` are ignored by Git. `VITE_*` variables are public browser build inputs; never use them for credentials.
 
-Leave the `env.local` bindings as they are. Apply the cloud migration:
+## What remains to configure
 
-```sh
-npx wrangler d1 migrations apply orbit-db --remote --env=""
-```
-
-Choose the hostname for the app. Set up a Cloudflare Access application covering the entire hostname, with an Allow policy for **only your email**. If you use a custom domain, also protect or disable the Worker’s `workers.dev` and preview URLs. Production APIs will reject requests without a valid Access login.
-
-Get these two values from Cloudflare Zero Trust:
-
-- **Team domain:** e.g. `your-team.cloudflareaccess.com`, without `https://`. Find it in the Zero Trust team settings.
-- **Application Audience (AUD):** open your Access application and copy its audience tag.
-
-Store them in the Worker:
-
-```sh
-npx wrangler secret put ACCESS_TEAM_DOMAIN --env=""
-npx wrangler secret put ACCESS_AUD --env=""
-```
-
-Set `.env.local` to `VITE_API_MODE=live`, then:
-
-```sh
-npm run lint
-npm run build
-npm run deploy
-```
-
-Cloudflare prints the deployed URL. Keep Access protection in place before using the app for your personal data. Once live, notes and files are shared across your devices via D1/R2. Google Drive, Google Calendar, GitHub activity, and Cloudflare analytics live adapters are future milestones.
-
-## Where each value belongs
-
-| Value                          | Location                                | Needed when                              |
-| ------------------------------ | --------------------------------------- | ---------------------------------------- |
-| `VITE_API_MODE=demo` or `live` | `.env.local`                            | Optional for preview; `live` for backend |
-| D1 database ID and name        | Production bindings in `wrangler.jsonc` | Cloud deployment                         |
-| R2 bucket name                 | Production bindings in `wrangler.jsonc` | Cloud deployment                         |
-| `ACCESS_TEAM_DOMAIN`           | Worker secret through Wrangler          | Cloud deployment                         |
-| `ACCESS_AUD`                   | Worker secret through Wrangler          | Cloud deployment                         |
-| `LOCAL_DEV=true`               | Already in `env.local` only             | Local runtime; do not set in production  |
-
-`.dev.vars` is only for local Worker variables; `.dev.vars.example` shows the Access variables but they are not needed for loopback development. `.env.local` and `.dev.vars` are ignored by Git. Variables prefixed `VITE_` are included in the browser bundle, so provider credentials never belong there.
-
-## What to provide for the next step
-
-You can share the D1 database ID, R2 bucket name, desired app hostname, Access team domain, and application audience tag. Authenticate on your own machine using `wrangler login`; you do not need to paste a Cloudflare API token into chat. No Google credentials are needed for the current milestone.
-
-## Official references
-
-- [Wrangler authentication and R2 setup](https://developers.cloudflare.com/r2/get-started/cli/)
-- [Cloudflare D1 setup](https://developers.cloudflare.com/d1/get-started/)
-- [Protect a Worker with Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/)
-- [Configure a self-hosted Access application](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)
+The Access team domain, application AUD, allowed sign-in email, domain zone confirmation, and Google OAuth client are still needed. Set secrets using local terminal prompts; keep passwords, API tokens, client secrets, encryption keys, and login codes out of chat.

@@ -6,30 +6,13 @@ The Worker is configured for `orbit.imakshat.com` as a Cloudflare Custom Domain.
 
 `imakshat.com` must be an active Cloudflare zone in the same account as the Worker. For this deployment, use the Worker Custom Domain feature: Cloudflare provisions DNS and the certificate. If an `orbit` CNAME already exists, save its target and remove that specific record when ready to attach the Custom Domain; existing CNAMEs conflict with Worker Custom Domains. Keep other domain records untouched. If DNS is hosted elsewhere, resolve the domain setup before deployment.
 
-## Get the storage values using your terminal
+## Account and database already configured
 
-In the project directory:
+- Account ID: `ee86951ee9b792b8e8e816ef34b34591`
+- D1 database: `orbit-db`
+- D1 ID: `1f4562f9-d3b4-4190-bae5-b5a59b72232a`
 
-```sh
-npx wrangler login
-npx wrangler whoami
-npx wrangler d1 create orbit-db
-npx wrangler r2 bucket create orbit-files
-```
-
-1. Login opens a browser. Authorize the Cloudflare account that owns `imakshat.com`.
-2. `whoami` lists the account name and account ID. Share the account ID, especially if you have more than one account.
-3. D1 creation prints a `database_id` UUID. Share that ID. If asked to update Wrangler automatically, you can decline; we will add the production binding without replacing the local one.
-4. R2 creation prints confirmation. Share the bucket name `orbit-files`. If R2 is not enabled, enable it in Cloudflare's R2 dashboard and retry.
-
-If those resources already exist, use the existing ones rather than recreating them. To retrieve IDs/names:
-
-```sh
-npx wrangler d1 list
-npx wrangler r2 bucket list
-```
-
-No R2 S3 access key is needed: the Worker uses a bucket binding.
+Do not recreate the database. Production file storage uses your existing Google Drive; skip R2 entirely. Stay on Workers and D1 Free plans. Wrangler authenticates locally with `npx wrangler login`.
 
 ## Get the Access values using the dashboard
 
@@ -47,10 +30,6 @@ If AUD is not visible in your dashboard layout, it can be retrieved through the 
 ## Send these values
 
 ```text
-Cloudflare account ID:
-D1 database ID:
-D1 database name: orbit-db
-R2 bucket name: orbit-files
 Access team domain: … .cloudflareaccess.com
 Access application AUD:
 Allowed sign-in email:
@@ -59,13 +38,12 @@ Domain DNS managed in Cloudflare: yes/no
 
 These are configuration identifiers. Keep passwords, API tokens, OAuth tokens, and login codes out of chat. Wrangler login authorizes deployment on your machine; no provider secret needs to be pasted here.
 
-After these values are supplied, we can add the production bindings/account ID, set the Access values as Worker secrets, apply the remote migration, build in live mode, deploy, and verify private sign-in and file storage. Until then the local preview remains in demo mode.
+After these values are supplied, set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` through `npx wrangler secret put NAME --env=""`. Then follow [Google Drive setup](google-drive.md), apply remote migrations, build in live mode, deploy, and verify private sign-in and file storage. Until then the local preview remains in demo mode.
 
 ## Official instructions
 
 - [Worker Custom Domains and CNAME conflicts](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
 - [Create D1](https://developers.cloudflare.com/d1/get-started/)
-- [R2 setup with Wrangler](https://developers.cloudflare.com/r2/get-started/cli/)
 - [Find the Zero Trust team domain](https://developers.cloudflare.com/cloudflare-one/faq/getting-started-faq/)
 - [Create an Access application](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)
 - [Access identity providers](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/)

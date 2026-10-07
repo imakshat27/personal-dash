@@ -56,6 +56,22 @@ export const api = {
     isDemo
       ? Promise.resolve(local<StorageFile[]>("files", demoFiles))
       : request<StorageFile[]>("/storage/files"),
+  filePage: async (
+    cursor?: string,
+  ): Promise<{ files: StorageFile[]; nextCursor?: string }> => {
+    if (isDemo) return { files: local<StorageFile[]>("files", demoFiles) };
+    const response = await fetch(
+      `/api/storage/files${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`,
+    );
+    const result = (await response.json()) as ApiResult<StorageFile[]> & {
+      data: { message?: string };
+    };
+    if (!response.ok)
+      throw new Error(
+        result.data?.message || "Could not load files. Please try again.",
+      );
+    return { files: result.data, nextCursor: result.nextCursor };
+  },
   usage: () =>
     isDemo
       ? Promise.resolve(demoUsage)
@@ -102,7 +118,7 @@ export const api = {
     await storeBlob(id, file);
     const item: StorageFile = {
       id,
-      provider: "r2",
+      provider: "drive",
       providerId: id,
       name: file.name,
       virtualPath: path,
@@ -137,7 +153,12 @@ export const api = {
       const response = await fetch(`/api/storage/files/${file.id}/download`);
       if (!response.ok)
         throw new Error("Could not download this file. Please try again.");
-      return response.blob();
+      const disposition = response.headers.get("Content-Disposition");
+      const name = disposition?.match(/filename\*=UTF-8''(.+)$/)?.[1];
+      const blob = await response.blob();
+      return new File([blob], name ? decodeURIComponent(name) : file.name, {
+        type: blob.type,
+      });
     }
     const stored = await blobAction<Blob | undefined>("readonly", (store) =>
       store.get(file.id),
@@ -183,6 +204,7 @@ export function bytes(value: number) {
   if (value < 1000) return `${value} B`;
   if (value < 1e6) return `${(value / 1000).toFixed(1)} KB`;
   if (value < 1e9) return `${(value / 1e6).toFixed(1)} MB`;
+  if (value >= 1e12) return `${(value / 1e12).toFixed(1)} TB`;
   return `${(value / 1e9).toFixed(1)} GB`;
 }
 export function time(value: string) {

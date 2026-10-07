@@ -1,5 +1,10 @@
 import { useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useInfiniteQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Cloud,
   UploadSimple,
@@ -19,7 +24,16 @@ import { Empty, ErrorState, Loading, Modal } from "../components/ui";
 import type { StorageFile } from "../../shared/models";
 export function Storage({ notify }: { notify: (s: string) => void }) {
   const client = useQueryClient();
-  const files = useQuery({ queryKey: ["files"], queryFn: api.files });
+  const pages = useInfiniteQuery({
+    queryKey: ["files", "pages"],
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) => api.filePage(pageParam),
+    getNextPageParam: (page) => page.nextCursor,
+  });
+  const files = {
+    ...pages,
+    data: pages.data?.pages.flatMap((page) => page.files) || [],
+  };
   const { data: usage = [] } = useQuery({
     queryKey: ["usage"],
     queryFn: api.usage,
@@ -55,7 +69,7 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
       client.invalidateQueries({ queryKey: ["files"] });
       client.invalidateQueries({ queryKey: ["usage"] });
       setSelected(null);
-      notify("File deleted.");
+      notify(isDemo ? "File deleted." : "File moved to Drive trash.");
     },
   });
   async function download(file: StorageFile) {
@@ -64,7 +78,7 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = file.name;
+      anchor.download = blob instanceof File ? blob.name : file.name;
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (error) {
@@ -112,6 +126,21 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
           aria-label="Upload file"
         />
       </div>
+      {!isDemo && !usage.length && (
+        <div className="context-banner">
+          <Cloud size={24} />
+          <div>
+            <strong>Bring your Drive into Orbit.</strong>
+            <p>
+              Connect Google Drive in Integrations to browse your files and use
+              your existing storage.
+            </p>
+            <a className="secondary" href="/integrations">
+              Open integrations
+            </a>
+          </div>
+        </div>
+      )}
       <div className="storage-overview">
         {usage.map((u) => (
           <button
@@ -148,26 +177,30 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
       <div className="storage-layout">
         <aside className="folder-sidebar">
           <span className="eyebrow">YOUR LITTLE LIBRARY</span>
-          {["All files", "Documents", "Design", "Photos", "Archives"].map(
-            (f) => (
-              <button
-                className={folder === f ? "active" : ""}
-                key={f}
-                onClick={() => setFolder(f)}
-              >
-                <FolderSimple size={19} />
-                {f}
-                <small>
-                  {
-                    files.data.filter(
-                      (file) =>
-                        f === "All files" || file.virtualPath === `/${f}`,
-                    ).length
-                  }
-                </small>
-              </button>
-            ),
-          )}
+          {[
+            "All files",
+            "Drive",
+            "Documents",
+            "Design",
+            "Photos",
+            "Archives",
+          ].map((f) => (
+            <button
+              className={folder === f ? "active" : ""}
+              key={f}
+              onClick={() => setFolder(f)}
+            >
+              <FolderSimple size={19} />
+              {f}
+              <small>
+                {
+                  files.data.filter(
+                    (file) => f === "All files" || file.virtualPath === `/${f}`,
+                  ).length
+                }
+              </small>
+            </button>
+          ))}
           <div className="storage-tip">
             <SparkleMark />
             <strong>Everything in its place.</strong>
@@ -278,6 +311,20 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
               }
             />
           )}
+          {pages.hasNextPage && (
+            <button
+              className="secondary"
+              onClick={() => pages.fetchNextPage()}
+              disabled={pages.isFetchingNextPage}
+            >
+              {pages.isFetchingNextPage ? "Loading…" : "Load more Drive files"}
+            </button>
+          )}
+          {pages.isFetchNextPageError && (
+            <p className="form-error">
+              Could not load the next page. Try again.
+            </p>
+          )}
           <div className="panel-foot">
             {visible.length} files
             {isDemo
@@ -291,9 +338,16 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
         onClose={() => setSelected(null)}
         title="A place for this file"
       >
+        {selected?.writable === false && (
+          <p className="muted">
+            This existing Drive file is available to view and download. Orbit
+            only edits files uploaded through Orbit.
+          </p>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            if (selected?.writable === false) return;
             edit.mutate();
           }}
         >
@@ -302,6 +356,7 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
             id="file-name"
             value={name}
             required
+            readOnly={selected?.writable === false}
             maxLength={255}
             pattern="[^/\\]+"
             onChange={(e) => setName(e.target.value)}
@@ -309,12 +364,15 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
           <label htmlFor="file-folder">Virtual folder</label>
           <select
             id="file-folder"
+            disabled={selected?.writable === false}
             value={path}
             onChange={(e) => setPath(e.target.value)}
           >
-            {["/Documents", "/Design", "/Photos", "/Archives"].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
+            {["/Drive", "/Documents", "/Design", "/Photos", "/Archives"].map(
+              (p) => (
+                <option key={p}>{p}</option>
+              ),
+            )}
           </select>
           <p className="muted">
             {selected && bytes(selected.size)} ·{" "}
@@ -332,19 +390,25 @@ export function Storage({ notify }: { notify: (s: string) => void }) {
               onClick={() => {
                 if (
                   window.confirm(
-                    `Delete ${selected?.name}? This cannot be undone.`,
+                    `Remove ${selected?.name} from Orbit? Drive uploads go to trash.`,
                   )
                 )
                   remove.mutate();
               }}
-              disabled={remove.isPending}
+              disabled={remove.isPending || selected?.writable === false}
             >
               <Trash size={18} />
-              Delete
+              {selected?.provider === "drive" && !isDemo
+                ? "Move to trash"
+                : "Delete"}
             </button>
             <button
               className="primary"
-              disabled={edit.isPending || remove.isPending}
+              disabled={
+                edit.isPending ||
+                remove.isPending ||
+                selected?.writable === false
+              }
             >
               <PencilSimple size={17} />
               {edit.isPending ? "Saving…" : "Save changes"}

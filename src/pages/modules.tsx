@@ -208,6 +208,20 @@ export function Integrations() {
           <p>Connect your favorite tools. Give them a shared home.</p>
         </div>
       </div>
+      {new URLSearchParams(window.location.search).has("drive") && (
+        <div className="context-banner">
+          <CheckCircle size={24} />
+          <p>
+            {new URLSearchParams(window.location.search).get("drive") ===
+            "connected"
+              ? "Google Drive is connected. Your storage is ready."
+              : new URLSearchParams(window.location.search).get("drive") ===
+                  "cancelled"
+                ? "Google sign-in was cancelled. You can connect whenever you’re ready."
+                : "Google could not finish connecting. Check the setup and try again."}
+          </p>
+        </div>
+      )}
       <div className="integration-grid">
         {data.data.map((i) => {
           const Icon =
@@ -233,7 +247,9 @@ export function Integrations() {
                     ? "Preview"
                     : i.status === "connected"
                       ? "Connected"
-                      : "Not connected"}
+                      : i.status === "needs_reauth"
+                        ? "Reconnect needed"
+                        : "Not connected"}
                 </span>
               </div>
               <small className="eyebrow">{i.category}</small>
@@ -262,23 +278,38 @@ export function Integrations() {
         title={`${selected?.name || "Integration"} setup`}
       >
         <p className="modal-intro">{selected?.description}</p>
-        {selected?.id === "r2" ? (
+        {selected?.id === "drive" ? (
           <>
             <p>
-              R2 is ready for live file storage. Configure it on the server:
+              Use your existing Google Drive storage. Browse and download
+              existing files; Orbit only edits files uploaded through Orbit.
             </p>
-            <ol className="setup-steps">
-              <li>Create your private R2 bucket and D1 database.</li>
-              <li>Set the FILES and DB bindings in wrangler.jsonc.</li>
-              <li>Apply the D1 migration and configure Cloudflare Access.</li>
-              <li>Set VITE_API_MODE and APP_MODE to live, then deploy.</li>
-            </ol>
+            <p>
+              Uploads live in an Orbit folder in your Drive. Removing an Orbit
+              upload sends it to Drive trash so you can restore it there.
+            </p>
+            {isDemo ? (
+              <p>
+                This preview stores changes in this browser. Connect your
+                account after deployment to use your real Drive files.
+              </p>
+            ) : selected.configured ? (
+              <a className="primary" href="/api/integrations/drive/connect">
+                {selected.status === "connected"
+                  ? "Reconnect Google Drive"
+                  : "Connect Google Drive"}
+              </a>
+            ) : (
+              <p>
+                Your Drive connection isn’t ready yet. Complete the one-time
+                account setup, then reload this page to connect.
+              </p>
+            )}
           </>
         ) : (
           <p>
-            This provider’s live adapter is a future milestone. The module
-            currently shows sample data. OAuth credentials and tokens will stay
-            in the Worker when the adapter is added.
+            This provider’s live adapter is a future milestone. OAuth
+            credentials will stay in the Worker when it is added.
           </p>
         )}
         <div className="context-banner compact">

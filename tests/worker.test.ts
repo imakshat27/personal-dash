@@ -12,6 +12,27 @@ describe("private Worker API", () => {
     expect(response.status).toBe(401);
     expect(response.headers.get("Cache-Control")).toBe("no-store");
   });
+  it.each(["connect", "callback"])(
+    "protects the Drive %s endpoint with Access",
+    async (action) => {
+      const response = await worker.fetch(
+        new Request(`https://private.example/api/integrations/drive/${action}`),
+        { ASSETS: assets, APP_MODE: "live" },
+      );
+      expect(response.status).toBe(401);
+      expect(response.headers.get("Location")).toBeNull();
+    },
+  );
+  it("returns empty files and quota before Drive is configured", async () => {
+    const env = { ASSETS: assets, LOCAL_DEV: "true", APP_MODE: "live" };
+    for (const path of ["files", "usage"]) {
+      const response = await worker.fetch(
+        new Request(`http://localhost/api/storage/${path}`),
+        env,
+      );
+      expect(await response.json()).toMatchObject({ data: [], mode: "live" });
+    }
+  });
   it("does not allow the development bypass on public hostnames", async () => {
     expect(
       await authorized(new Request("https://public.example/api/notes"), {

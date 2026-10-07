@@ -8,6 +8,7 @@ export interface StorageFile {
   mimeType: string;
   size: number;
   modifiedAt: string;
+  writable?: boolean;
 }
 export interface StorageUsage {
   provider: ProviderId;
@@ -41,11 +42,12 @@ export interface CalendarEvent {
   location: string;
 }
 export interface Integration {
+  configured?: boolean;
   id: string;
   name: string;
   category: string;
   description: string;
-  status: "demo" | "connected" | "not_configured";
+  status: "demo" | "connected" | "not_configured" | "needs_reauth";
 }
 export interface DashboardData {
   sites: Site[];
@@ -61,4 +63,5 @@ export interface DashboardData {
 export interface ApiResult<T> {
   data: T;
   mode: "demo" | "live";
+  nextCursor?: string;
 }

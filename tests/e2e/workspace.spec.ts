@@ -1,4 +1,45 @@
 import { test, expect } from "@playwright/test";
+test("existing Drive file details explain and enforce read-only access", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      "orbit.demo.files",
+      JSON.stringify([
+        {
+          id: "drive:existing",
+          provider: "drive",
+          providerId: "existing",
+          name: "My existing file.txt",
+          virtualPath: "/Drive",
+          mimeType: "text/plain",
+          size: 100,
+          modifiedAt: "2026-10-07T00:00:00Z",
+          writable: false,
+        },
+      ]),
+    );
+  });
+  await page.goto("/storage");
+  await page
+    .getByRole("button", { name: "My existing file.txt /Drive" })
+    .click();
+  await expect(
+    page.getByText("Orbit only edits files uploaded through Orbit.", {
+      exact: false,
+    }),
+  ).toBeVisible();
+  await expect(page.getByLabel("File name")).toHaveAttribute("readonly", "");
+  await expect(page.getByLabel("Virtual folder")).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Save changes" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Delete", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("File name").press("Enter");
+  await expect(page.getByRole("dialog")).toBeVisible();
+});
 test("capture, persist, edit, pin, search and delete a thought", async ({
   page,
 }) => {
@@ -47,13 +88,11 @@ test("upload, download, rename, move and delete an actual file", async ({
   page,
 }) => {
   await page.goto("/storage");
-  await page
-    .locator("input[type=file]")
-    .setInputFiles({
-      name: "test.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("hello orbit"),
-    });
+  await page.locator("input[type=file]").setInputFiles({
+    name: "test.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("hello orbit"),
+  });
   await expect(
     page.getByRole("button", { name: "test.txt /Documents" }),
   ).toBeVisible();

@@ -18,3 +18,13 @@ The earlier GitHub server error cleared on a later retry. The private repository
 ## Typography iteration
 
 Small labels and supporting text now use 12–14 px sizing, stronger secondary text contrast, and more line spacing. Desktop and 375 px screenshots were visually checked, and all four end-to-end checks, lint, typecheck, and production build pass. A step-by-step environment/setup guide is in `docs/setup.md`.
+
+## Google Drive storage milestone
+
+- Production uses Drive and D1, with no R2 binding or subscription required. Local R2 emulation remains solely for backend checks.
+- ESLint and strict TypeScript checks pass. All 26 unit tests and 5 Playwright flows pass, including browser read-only controls for existing files.
+- Google responses were mocked to verify OAuth state, PKCE, encrypted token persistence, revoked-token handling, pagination, existing-file mutation rejection, managed upload/trash, PDF export, and actual account quota.
+- OAuth endpoints reject unauthenticated requests before redirects or token exchanges.
+- Desktop storage and the 375 px Drive setup dialog were visually inspected; the dialog stays within the viewport with reduced motion enabled.
+- Local token-table migration, production build, and Wrangler dry run pass. The dry run lists D1, assets, and Drive configuration without an R2 binding.
+- No Google account is connected and nothing has been deployed. Actual account and custom-domain validation await OAuth and Access configuration.

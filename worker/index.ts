@@ -9,12 +9,21 @@ import {
 } from "../shared/demo";
 import type { Note } from "../shared/models";
 import { R2StorageProvider } from "./providers/r2";
+import { GoogleDriveProvider } from "./providers/drive";
+import {
+  driveOAuth,
+  driveConfigured,
+  driveConnected,
+  type DriveEnv,
+} from "./providers/drive-auth";
+import { ProviderError } from "./providers/errors";
 import { safeName, safePath } from "./providers/storage";
-interface Env {
+interface Env extends DriveEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
   FILES?: R2Bucket;
   APP_MODE?: string;
+  STORAGE_PROVIDER?: string;
   LOCAL_DEV?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
@@ -52,9 +61,9 @@ export async function authorized(request: Request, env: Env): Promise<boolean> {
     return false;
   }
 }
-function json(data: unknown, mode: string, status = 200) {
+function json(data: unknown, mode: string, status = 200, nextCursor?: string) {
   return Response.json(
-    { data, mode },
+    { data, mode, ...(nextCursor ? { nextCursor } : {}) },
     {
       status,
       headers: {
@@ -81,6 +90,10 @@ export default {
     const path = url.pathname;
     const method = request.method;
     try {
+      if (mode === "live") {
+        const oauth = await driveOAuth(request, env);
+        if (oauth) return oauth;
+      }
       if (path === "/api/dashboard" && method === "GET")
         return json(
           mode === "demo"
@@ -92,29 +105,49 @@ export default {
         return json(mode === "demo" ? demoDashboard.events : [], mode);
       if (path === "/api/sites" && method === "GET")
         return json(mode === "demo" ? demoDashboard.sites : [], mode);
-      if (path === "/api/integrations" && method === "GET")
+      if (path === "/api/integrations" && method === "GET") {
+        const driveStatus =
+          mode === "demo"
+            ? "demo"
+            : driveConfigured(env)
+              ? (
+                  await database(env)
+                    .prepare("SELECT status FROM integrations WHERE id='drive'")
+                    .first<{ status: string }>()
+                )?.status || "not_configured"
+              : "not_configured";
         return json(
-          demoIntegrations.map((i) => ({
-            ...i,
-            status:
-              mode === "demo"
-                ? i.status
-                : i.id === "r2" && env.FILES && env.DB
-                  ? "connected"
-                  : "not_configured",
-          })),
+          demoIntegrations
+            .filter((i) => i.id !== "r2")
+            .map((i) => ({
+              ...i,
+              configured: i.id === "drive" && driveConfigured(env),
+              status:
+                mode === "demo"
+                  ? i.status
+                  : i.id === "drive"
+                    ? driveStatus
+                    : "not_configured",
+            })),
           mode,
         );
-      if (path === "/api/storage/files" && method === "GET")
-        return json(
-          mode === "demo" ? demoFiles : await storage(env).list(),
-          mode,
+      }
+      if (path === "/api/storage/files" && method === "GET") {
+        if (mode === "demo") return json(demoFiles, mode);
+        if (env.STORAGE_PROVIDER === "r2")
+          return json(await storage(env).list(), mode);
+        if (!(await driveConnected(env))) return json([], mode);
+        const page = await new GoogleDriveProvider(env).listPage(
+          url.searchParams.get("cursor") || undefined,
         );
-      if (path === "/api/storage/usage" && method === "GET")
-        return json(
-          mode === "demo" ? demoUsage : [await storage(env).getUsage()],
-          mode,
-        );
+        return json(page.files, mode, 200, page.nextCursor);
+      }
+      if (path === "/api/storage/usage" && method === "GET") {
+        if (mode === "demo") return json(demoUsage, mode);
+        if (env.STORAGE_PROVIDER !== "r2" && !(await driveConnected(env)))
+          return json([], mode);
+        return json([await storage(env).getUsage()], mode);
+      }
       if (path === "/api/notes" && method === "GET") {
         if (mode === "demo") return json(demoNotes, mode);
         const { results } = await database(env)
@@ -131,7 +164,7 @@ export default {
         return json(
           {
             message:
-              "Demo changes are stored in this browser. Connect D1 and R2 for server storage.",
+              "Demo changes are stored in this browser. Connect D1 and Google Drive for server storage.",
           },
           mode,
           409,
@@ -239,6 +272,8 @@ export default {
       }
       return json({ message: "This endpoint is not available." }, mode, 404);
     } catch (error) {
+      if (error instanceof ProviderError)
+        return json({ message: error.message }, mode, error.status);
       if (error instanceof SyntaxError)
         return json({ message: "Send valid JSON and try again." }, mode, 400);
       if (error instanceof z.ZodError)
@@ -262,6 +297,7 @@ function database(env: Env) {
   return env.DB;
 }
 function storage(env: Env) {
+  if (env.STORAGE_PROVIDER !== "r2") return new GoogleDriveProvider(env);
   if (!env.FILES) throw new Error("R2 binding is missing.");
   return new R2StorageProvider(env.FILES, database(env));
 }

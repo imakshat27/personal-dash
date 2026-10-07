@@ -2,7 +2,7 @@
 
 A private personal command center. A little space for your digital world.
 
-This first milestone includes a responsive light/dark dashboard, unified file browser, persistent notes, quick capture, global search (⌘/Ctrl K), calendar preview, integrations setup, and an installable PWA shell. Sample analytics, files, and events are explicitly labeled. Local demo uploads retain their contents in IndexedDB; metadata and notes use localStorage. Browser demo data is device-local, unencrypted, and not a backup. Live mode stores notes and file metadata in D1 and file contents in R2.
+This first milestone includes a responsive light/dark dashboard, unified file browser, persistent notes, quick capture, global search (⌘/Ctrl K), calendar preview, integrations setup, and an installable PWA shell. Sample analytics, files, and events are explicitly labeled. Local demo uploads retain their contents in IndexedDB; metadata and notes use localStorage. Browser demo data is device-local, unencrypted, and not a backup. Live mode stores notes and encrypted connection tokens in D1; files remain in your Google Drive.
 
 For a step-by-step guide covering the preview, local backend, environment variables, and cloud deployment, see [Get Orbit running](docs/setup.md).
 
@@ -36,42 +36,22 @@ src/                   React application and normalized API client
   lib/api.ts           Demo/live data boundary and browser persistence
 shared/                Provider-independent contracts and sample data
 worker/                Same-origin Cloudflare Worker API + Access verification
-  providers/           Storage contract and live R2 adapter
+  providers/           Storage contract, Google Drive OAuth/adapter, local R2 adapter
 migrations/            Reproducible D1 migrations
 public/                App icons and PWA assets
 ```
 
-External services → server-side adapters → normalized APIs → UI. React never receives provider credentials. `StorageProvider` defines list, search, get, upload, delete, move, rename, and usage. R2 keys use opaque IDs; virtual paths live in D1 so moves do not copy objects. R2 has no artificial capacity limit; the UI displays no invented pooled free space. R2 usage currently reflects indexed files, not unrelated pre-existing bucket objects. There is no Drive live adapter yet.
+External services → server-side adapters → normalized APIs → UI. React never receives provider credentials. Google Drive provides browsing, downloads, uploads, rename, virtual moves, trash, and actual account quota. Existing files are read-only; mutations require an app-private Orbit upload marker checked by the backend. D1 stores notes and AES-GCM encrypted OAuth tokens. Local R2 emulation remains available for credential-free backend tests.
 
-Dashboard sections are isolated reusable panels. Add a new adapter without introducing provider-specific API calls into frontend components. Site analytics, Google OAuth, GitHub synchronization, Cron jobs, persistent search indexes, widget rearranging, and calendar writes remain future milestones. Search currently matches pages, indexed files, notes, sample events, and sample sites, and navigates to the relevant module. It does not search file contents.
+Dashboard sections are isolated reusable panels. Site analytics, GitHub synchronization, calendar writes, full-drive search indexing, and widget rearranging remain future milestones. File browser search covers loaded pages; global search uses the newest file page. Neither searches file contents.
 
-## Cloudflare setup
+## Cloud deployment
 
-1. Sign in with `npx wrangler login`.
-2. Create D1: `npx wrangler d1 create orbit-db`.
-3. Create private R2: `npx wrangler r2 bucket create orbit-files`.
-4. Add production bindings to `wrangler.jsonc` using your returned database ID:
+The production account and D1 binding are configured for `orbit.imakshat.com`. Production has no R2 binding and requires no R2 subscription. Keep Workers and D1 on Free plans.
 
-```json
-"d1_databases": [{ "binding": "DB", "database_name": "orbit-db", "database_id": "YOUR_ID", "migrations_dir": "migrations" }],
-"r2_buckets": [{ "binding": "FILES", "bucket_name": "orbit-files" }]
-```
+Follow [Cloudflare Access and domain setup](docs/cloudflare-values.md), then [Google Drive OAuth setup](docs/google-drive.md). Google credentials and the encryption key belong in Worker secrets, never `VITE_*` variables. The Worker verifies Access JWT signature, issuer, and audience for every API request, including OAuth; protect the entire hostname through Access as well.
 
-5. Apply schema: `npx wrangler d1 migrations apply orbit-db --remote`.
-6. Create a Cloudflare Zero Trust Access application for the deployment hostname. Allow only your email. Protect the **whole hostname**, including assets. Disable unprotected alternate hostnames and preview URLs, or protect each with Access. The Worker independently verifies Access JWT signature, issuer, and audience for all `/api/*` calls and fails closed without configuration.
-7. Configure server secrets:
-
-```sh
-npx wrangler secret put ACCESS_TEAM_DOMAIN
-npx wrangler secret put ACCESS_AUD
-```
-
-`ACCESS_TEAM_DOMAIN` is your team hostname, e.g. `my-team.cloudflareaccess.com` (no scheme). `ACCESS_AUD` is the Access application audience tag. Keep `LOCAL_DEV` unset in production. Never put secrets in `VITE_*` variables; those are public.
-
-8. Set `.env.local` to `VITE_API_MODE=live`. Production `APP_MODE` is already `live` in Wrangler.
-9. Run checks, then `npm run deploy` once you are ready to publish.
-
-Deployment has not been performed by this initial implementation. No real Cloudflare resources or provider accounts are provisioned automatically. Tokens for future providers should use least-privilege scopes, remain in Worker secrets or encrypted server-side token storage, and never be placed in integration settings JSON.
+Set `VITE_API_MODE=live` in `.env.local`, apply remote D1 migrations, and deploy only after Access and Google configuration are ready. No deployment or live Google connection has been performed yet.
 
 ## API conventions
 
@@ -81,14 +61,14 @@ Responses: `{ data, mode: "demo" | "live" }`; errors use `{ data: { message }, m
 | -------------------------------------------------- | ------------- | ------------------------- |
 | `/api/dashboard`                                   | GET           | Normalized widgets        |
 | `/api/sites`, `/api/calendar`, `/api/integrations` | GET           | Module data/status        |
-| `/api/storage/files`                               | GET, POST     | List and multipart upload |
-| `/api/storage/files/:id`                           | PATCH, DELETE | Rename, move, delete      |
+| `/api/storage/files`                               | GET, POST     | Paginated list and upload |
+| `/api/storage/files/:id`                           | PATCH, DELETE | Rename, move, trash       |
 | `/api/storage/files/:id/download`                  | GET           | Private download          |
-| `/api/storage/usage`                               | GET           | Provider-indexed usage    |
+| `/api/storage/usage`                               | GET           | Actual account quota      |
 | `/api/notes`                                       | GET, POST     | List/create               |
 | `/api/notes/:id`                                   | PUT, DELETE   | Edit/delete               |
 
-Uploads are limited to 25 MB in this iteration. An R2 upload rolls back its object if indexing fails. Cross-service operations cannot be atomic: if a delete loses its D1 update after R2 succeeds, retrying delete clears the stale metadata. Future synchronization should reconcile missing objects and stale indexes.
+Uploads are limited to 25 MB in this iteration. They go into an actual `Orbit` folder in Drive; folders shown inside Orbit are virtual labels. Existing Google Docs, Sheets, Slides, and Drawings download as PDF. Files listed from existing Drive folders are grouped under `/Drive`. The listing loads 100 files per page. OAuth connect and callback use `/api/integrations/drive/connect` and `/api/integrations/drive/callback`.
 
 ## PWA and privacy
 
@@ -104,4 +84,4 @@ npm run test:e2e
 npm run build
 ```
 
-Tests cover file path validation, private API authorization, malformed requests, local persistence, and R2 upload rollback. Repeatable Playwright checks cover desktop/mobile layout and create/edit/pin/delete/upload/download/search/theme flows. They use an installed Chrome browser; run `npm run test:e2e`. Commits use the existing user Git identity without assistant attribution. See `docs/architecture.md` for extension decisions.
+Tests cover file path validation, private API authorization, malformed requests, local persistence, OAuth state/PKCE, token encryption, Drive mutation restrictions, uploads/downloads, pagination, real quota, and local R2 upload rollback. Repeatable Playwright checks cover desktop/mobile layout and create/edit/pin/delete/upload/download/search/theme flows. They use an installed Chrome browser; run `npm run test:e2e`. Commits use the existing user Git identity without assistant attribution. See `docs/architecture.md` for extension decisions.
