@@ -1,5 +1,49 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&family=Manrope:wght@400;500;600;650;700;750;800&display=swap");
 @import "tailwindcss";
+.app-recovery {
+  max-width: 560px;
+  margin: 12vh auto;
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+.app-recovery h1 {
+  font-size: 32px;
+  line-height: 1.2;
+}
+.app-recovery p {
+  line-height: 1.6;
+}
+.app-recovery a {
+  text-decoration: underline;
+}
+.app-update {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: min(560px, calc(100% - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px #0002;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.app-update button {
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .app-update {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
 :root {
   font-family: "DM Sans", sans-serif;
   color: var(--text);
