@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "personal-dash",
+  "account_id": "ee86951ee9b792b8e8e816ef34b34591",
   "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
   "assets": {
@@ -11,9 +12,16 @@
   },
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "orbit.imakshat.com", "custom_domain": true }],
-  "vars": { "APP_MODE": "live" },
-  // Before deployment, add D1 and R2 bindings as described in README.md.
+  "routes": [
+    {
+      "pattern": "orbit.imakshat.com",
+      "custom_domain": true,
+    },
+  ],
+  "vars": {
+    "APP_MODE": "live",
+  },
+  // Production D1 is configured. Add FILES after enabling R2 and creating the bucket.
   "env": {
     "local": {
       "d1_databases": [
@@ -24,8 +32,25 @@
           "migrations_dir": "migrations",
         },
       ],
-      "r2_buckets": [{ "binding": "FILES", "bucket_name": "orbit-files" }],
-      "vars": { "APP_MODE": "live", "LOCAL_DEV": "true" },
+      "r2_buckets": [
+        {
+          "binding": "FILES",
+          "bucket_name": "orbit-files",
+        },
+      ],
+      "vars": {
+        "APP_MODE": "live",
+        "LOCAL_DEV": "true",
+      },
     },
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "orbit-db",
+      "database_id": "1f4562f9-d3b4-4190-bae5-b5a59b72232a",
+      "migrations_dir": "migrations",
+      "remote": true,
+    },
+  ],
 }
