@@ -40,7 +40,7 @@ No R2 S3 access key is needed: the Worker uses a bucket binding.
 5. Name it **Orbit**. Select **Add public hostname**, using subdomain `orbit` and domain `imakshat.com`. Leave the path empty so the entire hostname is protected.
 6. Add an **Allow** policy named **Only me**. Use **Include → Emails → your exact sign-in email**. Do not use an Everyone or Bypass policy.
 7. In the application's login methods, choose your Cloudflare account login, or configure One-time PIN if you prefer email codes. New organizations may default to Cloudflare login. Make sure the policy email matches the login identity.
-8. Save the application. Open its configuration/details and copy **Application Audience (AUD)**. This is the audience tag, not the application ID and not a login token.
+8. Save the application. Back in Applications, select **Configure → Additional settings** and copy **Application Audience (AUD) Tag**. This is the audience tag, not the application ID and not a login token.
 
 If AUD is not visible in your dashboard layout, it can be retrieved through the Access applications API's `aud` field; do not create a new API token just for this if you can use the UI.
 
