@@ -2,7 +2,7 @@
 
 This connection reads existing zone traffic. It enables no paid service and changes no plans, DNS, or infrastructure. Keep your existing Free plans. It does not require R2 or Zero Trust.
 
-1. Open the Cloudflare dashboard and select your existing account. Open **Account API tokens** (under account management), then **Create Token**.
+1. Open [My Profile → API Tokens](https://dash.cloudflare.com/profile/api-tokens), then **Create Token**. Use the user-token form, which exposes both account and zone permission rows. The account-token form may initially show only account permissions.
 2. Under **Custom token**, click **Get started**. Name it **Orbit analytics**.
 3. Add these read permissions:
 
