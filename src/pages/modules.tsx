@@ -1,6 +1,7 @@
 import { indiaDate } from "../../shared/calendar";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { siteValue } from "../../shared/models";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowUpRight,
   Cloud,
@@ -17,7 +18,7 @@ import {
   GlobeHemisphereWest,
   LinkSimple,
 } from "@phosphor-icons/react";
-import { api, isDemo, time } from "../lib/api";
+import { api, isDemo, time, bytes } from "../lib/api";
 import {
   Empty,
   ErrorState,
@@ -28,7 +29,11 @@ import {
 } from "../components/ui";
 import type { Integration } from "../../shared/models";
 export function Sites() {
-  const data = useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard });
+  const data = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: api.dashboard,
+    staleTime: 60000,
+  });
   if (data.isPending) return <Loading />;
   if (data.error)
     return (
@@ -59,16 +64,38 @@ export function Sites() {
               </span>
               <span className="connected-pill">
                 <span className="status-dot" />
-                Online
+                {isDemo
+                  ? "Online"
+                  : s.status === "healthy"
+                    ? "Zone active"
+                    : "Zone needs attention"}
               </span>
               <div className="site-stat">
-                <strong>{s.visitors.toLocaleString()}</strong>
-                <span>visitors this week · ↗ {s.change}%</span>
+                <strong>{siteValue(s)}</strong>
+                <span>
+                  {isDemo
+                    ? "visitors this week"
+                    : "estimated requests · last 24 completed hours"}
+                  {s.change !== null &&
+                    ` · ${s.change >= 0 ? "↗" : "↘"} ${s.change}%`}
+                </span>
               </div>
-              <Sparkline values={s.series} color="var(--green)" fill />
+              {s.analyticsError ? (
+                <p className="form-error" role="alert">
+                  {s.analyticsError}
+                </p>
+              ) : (
+                <Sparkline values={s.series} color="var(--green)" fill />
+              )}
               <div className="site-metadata">
                 <span>Cloudflare</span>
-                <span>Sample analytics</span>
+                <span>
+                  {isDemo
+                    ? "Sample analytics"
+                    : s.bandwidth !== undefined
+                      ? `${bytes(s.bandwidth)} transferred`
+                      : "Analytics unavailable"}
+                </span>
               </div>
             </div>
           </Panel>
@@ -77,7 +104,10 @@ export function Sites() {
       {!data.data.sites.length && (
         <Empty
           title="Your next project belongs here"
-          detail="The infrastructure module is ready for a Cloudflare analytics adapter. Configure it when you’re ready."
+          detail={
+            data.data.integrationErrors?.cloudflare ||
+            "Connect Cloudflare from Integrations to see your zones and traffic."
+          }
         />
       )}
       <div className="context-banner">
@@ -85,8 +115,9 @@ export function Sites() {
         <div>
           <strong>Ready for your real-world projects.</strong>
           <p>
-            Cloudflare analytics and deployments will arrive through server-side
-            provider adapters. The preview above uses sample data.
+            {isDemo
+              ? "This preview uses sample analytics."
+              : "Traffic includes proxied hostnames in each zone. Request estimates and transfer volumes come from Cloudflare; zone status is not an uptime check."}
           </p>
         </div>
       </div>
@@ -193,6 +224,14 @@ export function Calendar() {
   );
 }
 export function Integrations() {
+  const client = useQueryClient();
+  const connect = useMutation({
+    mutationFn: api.connectCloudflare,
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["integrations"] });
+      client.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
   const data = useQuery({
     queryKey: ["integrations"],
     queryFn: api.integrations,
@@ -258,7 +297,9 @@ export function Integrations() {
                       ? "Connected"
                       : i.status === "needs_reauth"
                         ? "Reconnect needed"
-                        : "Not connected"}
+                        : i.status === "error"
+                          ? "Check connection"
+                          : "Not connected"}
                 </span>
               </div>
               <small className="eyebrow">{i.category}</small>
@@ -335,6 +376,42 @@ export function Integrations() {
               <p>
                 Finish the one-time Google account setup, then reload this page
                 to connect.
+              </p>
+            )}
+          </>
+        ) : selected?.id === "cloudflare" ? (
+          <>
+            <p>
+              Bring your Cloudflare zones and the last 24 hours of estimated
+              traffic into Orbit. This connection reads data and cannot change
+              your infrastructure.
+            </p>
+            {isDemo ? (
+              <p>The preview uses sample traffic.</p>
+            ) : selected.configured ? (
+              <button
+                className="primary"
+                disabled={connect.isPending}
+                onClick={() => connect.mutate()}
+              >
+                {connect.isPending
+                  ? "Checking…"
+                  : "Verify Cloudflare connection"}
+              </button>
+            ) : (
+              <p>
+                Save the read-only Cloudflare token in the Worker, then reload
+                this page to verify the connection.
+              </p>
+            )}
+            {connect.error && (
+              <p role="alert" className="form-error">
+                {connect.error.message}
+              </p>
+            )}
+            {connect.isSuccess && (
+              <p role="status">
+                Cloudflare is connected. Your sites are ready.
               </p>
             )}
           </>

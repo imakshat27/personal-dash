@@ -12,3 +12,5 @@
 ## Visual direction
 
 UI UX Pro Max informed spacing, hierarchy, accessibility, responsiveness, and minimal style. The generated master’s marketing layout is not suitable for this dashboard; the implementation uses an application sidebar and modular information grid. Warm gray surfaces, a muted forest accent, sage/lavender/sand support colors, DM Sans UI text, and Manrope headings keep the product personal. A CSS orbital illustration adds character without an image dependency. Both themes use semantic CSS variables; reduced motion removes animation.
+
+Cloudflare analytics uses a Worker-only read token scoped to selected zones. It lists at most 20 zones and queries completed UTC hours over the last 24 hours, with the previous period for comparison. Adaptive request counts are estimates, not visitors; zone activation is not an uptime probe. Each zone can fail independently without hiding the others or affecting Drive/Calendar. No DNS, billing, plan, or infrastructure changes are performed by this adapter.

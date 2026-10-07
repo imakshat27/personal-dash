@@ -21,6 +21,7 @@
   "vars": {
     "APP_MODE": "live",
     "OWNER_EMAIL": "agarwalakshat2710@gmail.com",
+    "CLOUDFLARE_ACCOUNT_ID": "ee86951ee9b792b8e8e816ef34b34591",
     "STORAGE_PROVIDER": "drive",
     "APP_ORIGIN": "https://orbit.imakshat.com",
   },
@@ -45,6 +46,7 @@
       "vars": {
         "APP_MODE": "live",
         "OWNER_EMAIL": "agarwalakshat2710@gmail.com",
+        "CLOUDFLARE_ACCOUNT_ID": "ee86951ee9b792b8e8e816ef34b34591",
         "LOCAL_DEV": "true",
         "STORAGE_PROVIDER": "r2",
         "APP_ORIGIN": "http://localhost:5173",

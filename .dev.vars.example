@@ -5,3 +5,6 @@ GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
 # Generate using: node -e "process.stdout.write(require('crypto').randomBytes(32).toString('base64url'))"
 TOKEN_ENCRYPTION_KEY=replace-with-a-generated-32-byte-base64url-key
 # OWNER_EMAIL is already configured in wrangler.jsonc. No Cloudflare Access secrets needed.
+
+# Optional, read-only zone analytics (see docs/cloudflare-analytics.md)
+# CLOUDFLARE_API_TOKEN=your-read-only-token

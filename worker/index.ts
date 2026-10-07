@@ -1,5 +1,10 @@
 import { authorized, authRoute, validMutationOrigin } from "./auth";
 export { authorized } from "./auth";
+import {
+  CloudflareProvider,
+  cloudflareConfigured,
+  type CloudflareEnv,
+} from "./providers/cloudflare";
 import { googleConnected } from "./providers/google-auth";
 import { GoogleCalendarProvider } from "./providers/calendar";
 import { indiaDate, dayWindow } from "../shared/calendar";
@@ -22,7 +27,7 @@ import {
 } from "./providers/drive-auth";
 import { ProviderError } from "./providers/errors";
 import { safeName, safePath } from "./providers/storage";
-interface Env extends DriveEnv {
+interface Env extends DriveEnv, CloudflareEnv {
   ASSETS: Fetcher;
   DB?: D1Database;
   FILES?: R2Bucket;
@@ -109,8 +114,7 @@ export default {
           mode === "demo"
             ? demoDashboard
             : {
-                sites: [],
-                ...(await calendarWidget(env)),
+                ...(await dashboardWidgets(env)),
                 activity: [],
               },
           mode,
@@ -126,16 +130,27 @@ export default {
         );
       }
       if (path === "/api/sites" && method === "GET")
-        return json(mode === "demo" ? demoDashboard.sites : [], mode);
+        return json(
+          mode === "demo"
+            ? demoDashboard.sites
+            : cloudflareConfigured(env)
+              ? await new CloudflareProvider(env).sites()
+              : [],
+          mode,
+        );
       if (path === "/api/integrations" && method === "GET") {
         const statuses =
           mode === "demo"
             ? []
             : (
                 await Promise.all(
-                  ["drive", "calendar"].map(async (id) => [
+                  ["drive", "calendar", "cloudflare"].map(async (id) => [
                     id,
-                    driveConfigured(env)
+                    (
+                      id === "cloudflare"
+                        ? cloudflareConfigured(env)
+                        : driveConfigured(env)
+                    )
                       ? (
                           await database(env)
                             .prepare(
@@ -154,7 +169,10 @@ export default {
             .map((i) => ({
               ...i,
               configured:
-                ["drive", "calendar"].includes(i.id) && driveConfigured(env),
+                i.id === "cloudflare"
+                  ? cloudflareConfigured(env)
+                  : ["drive", "calendar"].includes(i.id) &&
+                    driveConfigured(env),
               status:
                 mode === "demo"
                   ? i.status
@@ -163,6 +181,32 @@ export default {
             })),
           mode,
         );
+      }
+      if (
+        path === "/api/integrations/cloudflare/connect" &&
+        method === "POST"
+      ) {
+        if (mode === "demo")
+          return json(
+            { message: "Demo connections stay on this device." },
+            mode,
+            409,
+          );
+        try {
+          const zones = await new CloudflareProvider(env).verify();
+          await database(env)
+            .prepare(
+              "INSERT INTO integrations (id,status) VALUES ('cloudflare','connected') ON CONFLICT(id) DO UPDATE SET status='connected'",
+            )
+            .run();
+          return json({ zones }, mode);
+        } catch (error) {
+          if (env.DB)
+            await env.DB.prepare(
+              "INSERT INTO integrations (id,status) VALUES ('cloudflare','error') ON CONFLICT(id) DO UPDATE SET status='error'",
+            ).run();
+          throw error;
+        }
       }
       if (path === "/api/storage/files" && method === "GET") {
         if (mode === "demo") return json(demoFiles, mode);
@@ -354,4 +398,37 @@ async function calendarWidget(env: Env) {
       },
     };
   }
+}
+
+async function dashboardWidgets(env: Env) {
+  const [calendar, cloudflare] = await Promise.all([
+    calendarWidget(env),
+    (async () => {
+      try {
+        return {
+          sites: cloudflareConfigured(env)
+            ? await new CloudflareProvider(env).sites()
+            : [],
+        };
+      } catch (error) {
+        return {
+          sites: [],
+          integrationErrors: {
+            cloudflare:
+              error instanceof ProviderError
+                ? error.message
+                : "Cloudflare is temporarily unavailable.",
+          },
+        };
+      }
+    })(),
+  ]);
+  return {
+    sites: cloudflare.sites,
+    events: calendar.events,
+    integrationErrors: {
+      ...calendar.integrationErrors,
+      ...cloudflare.integrationErrors,
+    },
+  };
 }

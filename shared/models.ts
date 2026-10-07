@@ -29,8 +29,11 @@ export interface Site {
   name: string;
   url: string;
   status: "healthy" | "warning";
-  visitors: number;
-  change: number;
+  visitors?: number;
+  requests?: number | null;
+  bandwidth?: number;
+  analyticsError?: string;
+  change: number | null;
   series: number[];
 }
 export interface CalendarEvent {
@@ -48,10 +51,10 @@ export interface Integration {
   name: string;
   category: string;
   description: string;
-  status: "demo" | "connected" | "not_configured" | "needs_reauth";
+  status: "demo" | "connected" | "not_configured" | "needs_reauth" | "error";
 }
 export interface DashboardData {
-  integrationErrors?: { calendar?: string };
+  integrationErrors?: { calendar?: string; cloudflare?: string };
   sites: Site[];
   events: CalendarEvent[];
   activity: {
@@ -67,3 +70,7 @@ export interface ApiResult<T> {
   mode: "demo" | "live";
   nextCursor?: string;
 }
+
+export const siteCount = (site: Site) => site.requests ?? site.visitors ?? 0;
+export const siteValue = (site: Site) =>
+  site.requests === null ? "—" : siteCount(site).toLocaleString();

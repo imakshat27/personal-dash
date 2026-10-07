@@ -47,6 +47,10 @@ function body(data: unknown, method = "POST"): RequestInit {
   };
 }
 export const api = {
+  connectCloudflare: () =>
+    request<{ zones: number }>("/integrations/cloudflare/connect", {
+      method: "POST",
+    }),
   calendar: (date: string) =>
     isDemo
       ? Promise.resolve(

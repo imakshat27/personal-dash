@@ -17,6 +17,7 @@ import {
   CalendarBlank,
 } from "@phosphor-icons/react";
 import { api, bytes, time, isDemo } from "../lib/api";
+import { siteCount, siteValue } from "../../shared/models";
 import { Panel, Sparkline, Loading, ErrorState } from "../components/ui";
 import type { StorageFile, Note } from "../../shared/models";
 export function FileIcon({ file }: { file: StorageFile }) {
@@ -36,7 +37,11 @@ export function Dashboard({
   onNote: (note: Note) => void;
 }) {
   const navigate = useNavigate();
-  const data = useQuery({ queryKey: ["dashboard"], queryFn: api.dashboard });
+  const data = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: api.dashboard,
+    staleTime: 60000,
+  });
   const { data: files = [] } = useQuery({
     queryKey: ["files"],
     queryFn: api.files,
@@ -54,7 +59,10 @@ export function Dashboard({
     return (
       <ErrorState message={data.error.message} retry={() => data.refetch()} />
     );
-  const totalVisitors = data.data.sites.reduce((sum, s) => sum + s.visitors, 0);
+  const totalVisitors = data.data.sites.reduce(
+    (sum, s) => sum + siteCount(s),
+    0,
+  );
   const date = new Intl.DateTimeFormat("en-IN", {
     weekday: "long",
     day: "numeric",
@@ -133,21 +141,42 @@ export function Dashboard({
           >
             <span className="metric-status">
               <span className="status-dot" />
-              {isDemo ? "All online" : "Awaiting integration"}
+              {isDemo
+                ? "All online"
+                : data.data.sites.length
+                  ? "Zones connected"
+                  : "Awaiting integration"}
             </span>
           </Metric>
           <Metric
-            label="Visitors this week"
-            value={totalVisitors.toLocaleString()}
+            label={isDemo ? "Visitors this week" : "Requests · Last 24h"}
+            value={
+              data.data.sites.some((s) => s.requests === null)
+                ? "—"
+                : totalVisitors.toLocaleString()
+            }
             detail={
-              isDemo ? "+12.8% from last week" : "Connect analytics to begin"
+              isDemo
+                ? "+12.8% from last week"
+                : data.data.sites.length
+                  ? "Estimated HTTP traffic · Completed hours"
+                  : "Connect analytics to begin"
             }
             icon={<ArrowUpRight size={20} />}
             color="lavender"
             onClick={() => navigate("/sites")}
           >
             <Sparkline
-              values={[12, 15, 13, 22, 20, 31, 28, 37, 33, 43, 40, 53]}
+              values={
+                isDemo
+                  ? [12, 15, 13, 22, 20, 31, 28, 37, 33, 43, 40, 53]
+                  : Array.from({ length: 24 }, (_, i) =>
+                      data.data.sites.reduce(
+                        (sum, s) => sum + (s.series[i] || 0),
+                        0,
+                      ),
+                    )
+              }
               color="var(--purple)"
             />
           </Metric>
@@ -187,8 +216,8 @@ export function Dashboard({
         >
           <div className="table-caption">
             <span>WEBSITE</span>
-            <span>VISITORS</span>
-            <span>LAST 7 DAYS</span>
+            <span>{isDemo ? "VISITORS" : "REQUESTS"}</span>
+            <span>{isDemo ? "LAST 7 DAYS" : "LAST 24 HOURS"}</span>
           </div>
           {data.data.sites.map((site) => (
             <button
@@ -209,22 +238,27 @@ export function Dashboard({
                 </span>
               </span>
               <span className="site-numbers">
-                <strong>{site.visitors.toLocaleString()}</strong>
-                <small>↗ {site.change}%</small>
+                <strong>{siteValue(site)}</strong>
+                <small>
+                  {site.change === null
+                    ? "No comparison"
+                    : `${site.change >= 0 ? "↗" : "↘"} ${site.change}%`}
+                </small>
               </span>
               <Sparkline values={site.series} color="var(--green)" />
             </button>
           ))}
           {!data.data.sites.length && (
             <div className="small-empty">
-              Connect a site to start seeing its story.
+              {data.data.integrationErrors?.cloudflare ||
+                "Connect a site to start seeing its story."}
             </div>
           )}
           <div className="panel-foot">
             <CheckCircle size={15} />
             {isDemo
               ? "Sample analytics · Connect Cloudflare to see your sites"
-              : "Cloudflare analytics is ready for an adapter"}
+              : "Cloudflare zone traffic · Estimates, not visitor counts"}
           </div>
         </Panel>
         <Panel

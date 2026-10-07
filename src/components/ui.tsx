@@ -128,7 +128,7 @@ export function Sparkline({
   const points = values
     .map(
       (v, i) =>
-        `${(i * 100) / (values.length - 1)},${36 - ((v - min) / (max - min)) * 32}`,
+        `${(i * 100) / Math.max(1, values.length - 1)},${36 - ((v - min) / (max - min || 1)) * 32}`,
     )
     .join(" ");
   return (
