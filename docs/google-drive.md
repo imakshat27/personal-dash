@@ -73,7 +73,7 @@ npm run deploy
 
 Sign in with your allowed Google account at the custom domain. Go to **Integrations → Google Drive → Set up integration → Connect Google Drive**, choose the account with your 5 TB plan, and approve the requested scopes. Return to **My storage**. Real quota and your accessible files appear there.
 
-The adapter is implemented and tested using mocked Google responses. Live account verification requires your OAuth client, login callback registration, and deployment; no live Google account is connected yet.
+The adapter is implemented and tested using mocked Google responses. The app is now deployed and the secrets are saved. Live account verification still requires your Google sign-in and Drive consent; no live Drive connection has been verified yet.
 
 ## Local mode
 

@@ -39,3 +39,12 @@ Zero Trust onboarding requires payment details even on its Free plan, so Orbit n
 - Private HTML redirects to login and unauthenticated APIs return 401. Production mutations and logout reject missing or cross-site origins, including requests with a valid owner session.
 - Local D1 session migration, production live-mode build, and deployment dry run pass. Login visuals were checked at 1440 px and 375 px in both themes; mobile keyboard access and overflow are covered by Playwright.
 - Actual Google login and custom-domain deployment are still pending; tests use locally signed mock Google identities. No deployment or DNS changes were performed.
+
+## Production deployment — 7 October 2026
+
+- All three configured Google secret names were confirmed through Wrangler without reading their values.
+- Applied all three migrations to the existing remote D1 database, then built and deployed the Worker and static assets.
+- Version: `9e4a89e1-5963-4293-b8c0-47f95197827c`; Custom Domain: `orbit.imakshat.com`. Public Workers and preview URLs remain disabled. No R2 or Zero Trust subscription was enabled.
+- Cloudflare public DNS resolves the new hostname. The local resolver initially retained an NXDOMAIN result; live checks used Cloudflare's resolved IP with hostname and TLS certificate validation preserved.
+- Live login returns 200; private pages redirect to login; notes and Drive consent endpoints return 401 without a session. Invalid OAuth state is rejected. Login redirects to Google with the configured callback, PKCE S256, valid client-ID format, and a Secure HttpOnly cookie.
+- The deployed login page renders in Chrome without application errors. Actual Google sign-in and Drive consent require owner interaction and are not yet verified.

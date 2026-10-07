@@ -1,6 +1,6 @@
 # Cloud deployment checklist for orbit.imakshat.com
 
-The Worker is configured for `orbit.imakshat.com` as a Cloudflare Custom Domain. The public `workers.dev` URL and preview URLs are disabled. Nothing has been deployed or changed in DNS yet.
+The Worker is configured for `orbit.imakshat.com` as a Cloudflare Custom Domain. The public `workers.dev` URL and preview URLs are disabled. Deployed on 7 October 2026. Cloudflare attached the Custom Domain and provisioned its DNS records.
 
 ## Domain prerequisite
 
@@ -28,7 +28,7 @@ https://orbit.imakshat.com/api/auth/callback
 3. Save the client. In **Audience**, ensure `agarwalakshat2710@gmail.com` is a test user if the app is still in Testing.
 4. Confirm `imakshat.com` is active in Cloudflare under the account above. The Worker Custom Domain provisions its DNS record; see the domain prerequisite above for CNAME conflicts.
 
-The Google client ID, client secret, and encryption key have been entered using Wrangler secret prompts by the user. The implementation has not independently verified those remote secrets. Do not paste their values into chat.
+The Google client ID, client secret, and encryption key have been entered using Wrangler secret prompts by the user. Wrangler confirms all three secret names are present. The live login endpoint validates the client ID format and successfully creates encrypted OAuth state; the actual Google code exchange still needs your sign-in. Do not paste their values into chat.
 
 ## Build and deploy
 

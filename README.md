@@ -51,7 +51,7 @@ The production account and D1 binding are configured for `orbit.imakshat.com`. P
 
 Follow [Google sign-in and domain setup](docs/cloudflare-values.md), then [Google Drive OAuth setup](docs/google-drive.md). Google credentials and the encryption key belong in Worker secrets, never `VITE_*` variables. Google sign-in checks signed identity, verified email, audience, issuer, and nonce. Only the configured owner can receive an app session. The Worker gates private pages and APIs, and checks Origin for mutations.
 
-Production builds default to live mode through `.env.production`. Apply remote D1 migrations and deploy once the Google login callback and domain are configured. No deployment or live Google connection has been performed yet.
+Production builds default to live mode through `.env.production`. Apply remote D1 migrations and deploy once the Google login callback and domain are configured. Orbit is deployed at `https://orbit.imakshat.com`. Google sign-in and Drive consent still need to be completed by the owner.
 
 ## API conventions
 
