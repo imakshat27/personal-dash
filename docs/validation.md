@@ -13,11 +13,8 @@ Checked on 7 October 2026.
 
 ## GitHub status
 
-Both GraphQL and REST repository creation failed with GitHub server errors. The REST request returned HTTP 500 with an empty body; request ID `EAA4:21C066:5F0C10:62DF73:6AC66244`. Authentication succeeds, but `imakshat27/personal-dash` does not exist yet, so push cannot succeed. The intended origin URL is configured locally. All implementation changes are committed with the existing user Git identity.
+The earlier GitHub server error cleared on a later retry. The private repository is now [imakshat27/personal-dash](https://github.com/imakshat27/personal-dash). Commits use the existing user Git identity.
 
-When GitHub repository creation works again:
+## Typography iteration
 
-```sh
-gh repo create imakshat27/personal-dash --private
-git push -u origin main
-```
+Small labels and supporting text now use 12–14 px sizing, stronger secondary text contrast, and more line spacing. Desktop and 375 px screenshots were visually checked, and all four end-to-end checks, lint, typecheck, and production build pass. A step-by-step environment/setup guide is in `docs/setup.md`.
