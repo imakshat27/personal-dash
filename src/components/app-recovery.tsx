@@ -3,12 +3,30 @@ import { registerSW } from "virtual:pwa-register";
 
 const updateEvent = "orbit:app-update";
 let updateAvailable = false;
+let registration: ServiceWorkerRegistration | undefined;
+function showUpdate() {
+  updateAvailable = true;
+  window.dispatchEvent(new Event(updateEvent));
+}
 const updateSW = registerSW({
-  onNeedRefresh() {
-    updateAvailable = true;
-    window.dispatchEvent(new Event(updateEvent));
+  onNeedRefresh: showUpdate,
+  onRegisteredSW(_url, value) {
+    registration = value;
   },
 });
+// New workers take control without reloading a page containing unsaved work.
+// Ask before refreshing the document; the next navigation fetches fresh HTML.
+if ("serviceWorker" in navigator) {
+  let controlled = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (controlled) showUpdate();
+    controlled = true;
+  });
+}
+function applyUpdate() {
+  if (registration?.waiting) void updateSW(true);
+  else window.location.reload();
+}
 
 // Recover static application code without removing notes, demo files or sessions.
 export async function refreshApplication() {
@@ -36,7 +54,7 @@ export function AppUpdate() {
   return (
     <div className="app-update" role="status">
       <span>A fresh Orbit is ready. Save your work before updating.</span>
-      <button className="primary" onClick={() => void updateSW(true)}>
+      <button className="primary" onClick={applyUpdate}>
         Update Orbit
       </button>
     </div>

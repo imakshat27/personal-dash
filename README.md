@@ -72,7 +72,7 @@ Uploads are limited to 25 MB in this iteration. They go into an actual `Orbit` f
 
 ## PWA and privacy
 
-Manifest includes standalone mode, regular/maskable icons, and a responsive shell. Generated service worker caches only static application assets; it excludes `/api` navigation and never caches API responses. Live private data is unavailable offline. Demo data remains locally accessible. Google Fonts is the only third-party frontend resource in this version; the system sans-serif fallback works offline. In-browser storage may be cleared by the browser. Signing out does not remove browser demo data; do not put sensitive production material in the demo.
+Manifest includes standalone mode, regular/maskable icons, and a responsive shell. Generated service worker caches static JS, CSS, icons and fonts. HTML navigations always go to the authenticated Worker, so installed apps receive the current version; API responses are never cached. A new worker can activate without discarding an open page’s unsaved work, and the app offers an update button. Live private data is unavailable offline. Demo data remains locally accessible. Google Fonts is the only third-party frontend resource in this version; the system sans-serif fallback works offline. In-browser storage may be cleared by the browser. Signing out does not remove browser demo data; do not put sensitive production material in the demo.
 
 ## Checks and Git
 

@@ -28,8 +28,12 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/api/],
-        globPatterns: ["**/*.{js,css,html,png,svg,woff2}"],
+        // Fetch HTML from the authenticated Worker on every navigation. Cached
+        // HTML otherwise pins installed clients to obsolete API contracts.
+        navigateFallback: null,
+        globPatterns: ["**/*.{js,css,png,svg,woff2}"],
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [],
       },
     }),
